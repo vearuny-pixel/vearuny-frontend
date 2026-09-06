@@ -1,0 +1,20 @@
+{
+  "name": "Vearuny Kitchen",
+  "short_name": "Vearuny",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "background_color": "#FEFAE0",
+  "theme_color": "#606C38",
+  "icons": [
+    {
+      "src": "assets/LOGO+BG.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "assets/LOGO+BG.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}

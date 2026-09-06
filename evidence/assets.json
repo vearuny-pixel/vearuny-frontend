@@ -1,0 +1,198 @@
+[
+  {
+    "url": "https://vearuny.web.app/",
+    "path": "recovered/index.html",
+    "bytes": 145794,
+    "sha256": "c08ad72d765027bb308af8fc9158ee7460feda693a8e56c812f526c33716466e",
+    "content_type": "text/html"
+  },
+  {
+    "url": "https://vearuny.web.app/style.css?v=20260814-4",
+    "path": "recovered/style.css",
+    "bytes": 24252,
+    "sha256": "cbd2b2cade0c3bc504c4b8eabf8197b5d584237115213155ecff055cbf7eef51",
+    "content_type": "text/css"
+  },
+  {
+    "url": "https://vearuny.web.app/lang-en.js",
+    "path": "recovered/lang-en.js",
+    "bytes": 12101,
+    "sha256": "8f4003e46043308fd717d5c50c674db2aec53b8badfc2bd89b83e61de5f1a94f",
+    "content_type": "text/javascript"
+  },
+  {
+    "url": "https://vearuny.web.app/lang-kh.js",
+    "path": "recovered/lang-kh.js",
+    "bytes": 23789,
+    "sha256": "ecb9166de079314158a666de754ed0357c5d35528be0338b67fb336d209c28d2",
+    "content_type": "text/javascript"
+  },
+  {
+    "url": "https://vearuny.web.app/nutrition.js?v=20260814-4",
+    "path": "recovered/nutrition.js",
+    "bytes": 12439,
+    "sha256": "b37d9ff48d4dca10025c6ceda6645a7f1a1aa1e141d8cf0f480ddce1dbab41b3",
+    "content_type": "text/javascript"
+  },
+  {
+    "url": "https://vearuny.web.app/manifest.json",
+    "path": "recovered/manifest.json",
+    "bytes": 505,
+    "sha256": "beebf082d0e5bbbe2edfa8098f0bdaa50324d3b8f48f743c4b58ad473af1ea7a",
+    "content_type": "application/json"
+  },
+  {
+    "url": "https://vearuny.web.app/graylogo.png",
+    "path": "recovered/graylogo.png",
+    "bytes": 15997,
+    "sha256": "d6ae0dd36015f83103fbd06ffc247f9d734c553c461983d92231240e33c49fac",
+    "content_type": "image/png"
+  },
+  {
+    "url": "https://cdn.tailwindcss.com",
+    "path": "recovered/vendor/tailwind.js",
+    "bytes": 407279,
+    "sha256": "176e894661aa9cdc9a5cba6c720044cbbf7b8bd80d1c9a142a7c24b1b6c50d15",
+    "content_type": "text/javascript"
+  },
+  {
+    "url": "https://telegram.org/js/telegram-web-app.js",
+    "path": "recovered/vendor/telegram-web-app.js",
+    "bytes": 116510,
+    "sha256": "3549138a7934039fe7dfd1291a4ee739bd2b705a614308053a8b08a87d85c451",
+    "content_type": "application/javascript"
+  },
+  {
+    "url": "https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js",
+    "path": "recovered/vendor/html2canvas.min.js",
+    "bytes": 198689,
+    "sha256": "e87e550794322e574a1fda0c1549a3c70dae5a93d9113417a429016838eab8cb",
+    "content_type": "application/javascript"
+  },
+  {
+    "url": "https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js",
+    "path": "recovered/vendor/jspdf.umd.min.js",
+    "bytes": 364463,
+    "sha256": "98ccf17aa10c20bb1301762618fcc9b6ab3a4e7f26b6071d64d0b41154df3875",
+    "content_type": "application/javascript"
+  },
+  {
+    "url": "https://cdn.jsdelivr.net/gh/davidshimjs/qrcodejs/qrcode.min.js",
+    "path": "recovered/vendor/qrcode.min.js",
+    "bytes": 19927,
+    "sha256": "c541ef06327885a8415bca8df6071e14189b4855336def4f36db54bde8484f36",
+    "content_type": "application/javascript"
+  },
+  {
+    "url": "https://fonts.googleapis.com/css2?family=Noto+Sans+Khmer:wght@400;600&display=swap",
+    "path": "recovered/vendor/fonts.css",
+    "bytes": 568,
+    "sha256": "60946280a9aa3a4c469667a8e15c1a3a19b8d96f7197531d72cd04a54d8ab90b",
+    "content_type": "text/css"
+  },
+  {
+    "url": "https://vearuny-kitchen-menus.s3.ap-southeast-2.amazonaws.com/LOGO+BG.png",
+    "path": "recovered/assets/LOGO+BG.png",
+    "bytes": 27184,
+    "sha256": "7a9b423e67b7b25e61595f642bcb8b935013064b188dc68d0bb10ad62a12e368",
+    "content_type": "image/png"
+  },
+  {
+    "url": "https://vearuny-kitchen-menus.s3.ap-southeast-2.amazonaws.com/A.jpg",
+    "path": "recovered/assets/menus/A.jpg",
+    "bytes": 292465,
+    "sha256": "ade3024a6a88e43eeff60f6548061bec3feceb041c8bbce408dbaea845362af7",
+    "content_type": "image/jpeg"
+  },
+  {
+    "url": "https://vearuny-kitchen-menus.s3.ap-southeast-2.amazonaws.com/B.jpg",
+    "path": "recovered/assets/menus/B.jpg",
+    "bytes": 263827,
+    "sha256": "655c53a88d4eb1dd0a596eaeae80c4fdad5aaa6aea397f1cb611ef43c4da9e7f",
+    "content_type": "image/jpeg"
+  },
+  {
+    "url": "https://vearuny-kitchen-menus.s3.ap-southeast-2.amazonaws.com/C.jpg",
+    "path": "recovered/assets/menus/C.jpg",
+    "bytes": 261927,
+    "sha256": "724d9089b22fdd40afe490a635c1d57eb6c66969744e3233a202f885c1f78df8",
+    "content_type": "image/jpeg"
+  },
+  {
+    "url": "https://vearuny-kitchen-menus.s3.ap-southeast-2.amazonaws.com/D.jpg",
+    "path": "recovered/assets/menus/D.jpg",
+    "bytes": 269700,
+    "sha256": "c089921856d639f916e58a31145fb21b16941718e78b1164c09ad6a714bef64a",
+    "content_type": "image/jpeg"
+  },
+  {
+    "url": "https://vearuny-kitchen-menus.s3.ap-southeast-2.amazonaws.com/E.jpg",
+    "path": "recovered/assets/menus/E.jpg",
+    "bytes": 264814,
+    "sha256": "3b726738ec3139d14d5c181f42e70f3ea251f0e429e603249ee9db550897bab2",
+    "content_type": "image/jpeg"
+  },
+  {
+    "url": "https://vearuny-kitchen-menus.s3.ap-southeast-2.amazonaws.com/F.jpg",
+    "path": "recovered/assets/menus/F.jpg",
+    "bytes": 268200,
+    "sha256": "b7a17e8e0764862faee1ee140a70e9837fdacd4d562a6fdff92a93c640496ea6",
+    "content_type": "image/jpeg"
+  },
+  {
+    "url": "https://vearuny-kitchen-menus.s3.ap-southeast-2.amazonaws.com/a.jpg",
+    "path": "recovered/assets/menus/a.jpg",
+    "bytes": 279527,
+    "sha256": "d0ac8d09012c2ac4a7d546bda19b2bdca9e4552f7acaa1b1fb55af779147c80d",
+    "content_type": "image/jpeg"
+  },
+  {
+    "url": "https://vearuny-kitchen-menus.s3.ap-southeast-2.amazonaws.com/b.jpg",
+    "path": "recovered/assets/menus/b.jpg",
+    "bytes": 256060,
+    "sha256": "db4324679b564566a90a75713209ba60bfbbfde9880cf6addd3eb72792550378",
+    "content_type": "image/jpeg"
+  },
+  {
+    "url": "https://vearuny-kitchen-menus.s3.ap-southeast-2.amazonaws.com/c.jpg",
+    "path": "recovered/assets/menus/c.jpg",
+    "bytes": 256305,
+    "sha256": "9964482e1af4a13f75c4259526aa7ba105586e309fd3f491fca4c9269285e8d5",
+    "content_type": "image/jpeg"
+  },
+  {
+    "url": "https://vearuny-kitchen-menus.s3.ap-southeast-2.amazonaws.com/d.jpg",
+    "path": "recovered/assets/menus/d.jpg",
+    "bytes": 262795,
+    "sha256": "0385a4e58b90b7e6df8d182b7d5532201f66174d919ab591b68cc01b20301433",
+    "content_type": "image/jpeg"
+  },
+  {
+    "url": "https://vearuny-kitchen-menus.s3.ap-southeast-2.amazonaws.com/e.jpg",
+    "path": "recovered/assets/menus/e.jpg",
+    "bytes": 248543,
+    "sha256": "fa42bdbae57b046760418661298f97b41bffbeb2687cac324dce7b592451f1c8",
+    "content_type": "image/jpeg"
+  },
+  {
+    "url": "https://vearuny-kitchen-menus.s3.ap-southeast-2.amazonaws.com/f.jpg",
+    "path": "recovered/assets/menus/f.jpg",
+    "bytes": 247074,
+    "sha256": "8edd3ee01ab7add8644cf259c6d2b50c74a910de90a8ab7393dcce35c7724c93",
+    "content_type": "image/jpeg"
+  },
+  {
+    "url": "https://fonts.gstatic.com/s/notosanskhmer/v29/ijw3s5roRME5LLRxjsRb-gssOenAyendxrgV2c-Zw-9vbVUti_Z_dWgtWYuNAJz4.ttf",
+    "path": "recovered/vendor/fonts/ijw3s5roRME5LLRxjsRb-gssOenAyendxrgV2c-Zw-9vbVUti_Z_dWgtWYuNAJz4.ttf",
+    "bytes": 104132,
+    "sha256": "a6b8a41682170ee0c8df82adb86650498c1a833c4ca00c1f043c81305680dbe8",
+    "content_type": "font/ttf"
+  },
+  {
+    "url": "https://fonts.gstatic.com/s/notosanskhmer/v29/ijw3s5roRME5LLRxjsRb-gssOenAyendxrgV2c-Zw-9vbVUti_Z_dWgtWYtTB5z4.ttf",
+    "path": "recovered/vendor/fonts/ijw3s5roRME5LLRxjsRb-gssOenAyendxrgV2c-Zw-9vbVUti_Z_dWgtWYtTB5z4.ttf",
+    "bytes": 104688,
+    "sha256": "b8c5e0b02791e20ae8d9cf899e2f9aedc081c4728303ea92736be6b878458dda",
+    "content_type": "font/ttf"
+  }
+]

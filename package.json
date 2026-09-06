@@ -1,0 +1,7 @@
+{
+  "name": "vearuny-checkout",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Recovered bilingual checkout; API integration pending parity review",
+  "scripts": {"test": "node --test test/*.test.js", "start": "node scripts/serve.js"}
+}

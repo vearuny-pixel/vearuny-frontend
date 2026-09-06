@@ -1,0 +1,16 @@
+.env
+.env.*
+!.env.example
+node_modules/
+.cache/
+playwright-report/
+test-results/
+*.log
+*.pem
+*.key
+*service-account*.json
+firebase-adminsdk*.json
+.firebase/
+.firebaserc
+firebase-debug.log*
+.DS_Store

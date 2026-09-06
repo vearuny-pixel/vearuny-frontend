@@ -1,0 +1,14 @@
+{
+  "observed_at": "2026-09-06T17:16:18.573544+00:00",
+  "frontend": "https://vearuny.web.app/",
+  "backend_commit": "5189d698c5441547c5f4a15b02fde3be71d5bd43",
+  "api_catalogs": [
+    "https://api.vearuny.com/api/plans",
+    "https://api.vearuny.com/api/packages",
+    "https://api.vearuny.com/api/addons"
+  ],
+  "asset_count": 28,
+  "isolated_tests_passed": 7,
+  "browser_visual_validation": "pending",
+  "integration": "not implemented; inspection checkpoint"
+}
