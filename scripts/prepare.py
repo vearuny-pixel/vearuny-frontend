@@ -24,7 +24,7 @@ def extract(m):
     inline.append(name)
     return '<script src="js/'+name+'"></script>'
 s=re.sub(r'<script\b([^>]*)>([\s\S]*?)</script>',extract,s)
-(source/'index.html').write_text(s)
+(source/'index.html').write_text('\n'.join(line.rstrip() for line in s.splitlines())+'\n')
 manifest=json.loads((source/'manifest.json').read_text())
 for i in manifest['icons']: i['src']='assets/LOGO+BG.png'
 (source/'manifest.json').write_text(json.dumps(manifest,indent=2)+'\n')

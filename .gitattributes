@@ -1,0 +1,3 @@
+# Preserve public asset bytes and vendored license text exactly.
+recovered/** -whitespace
+site/vendor/** -whitespace
