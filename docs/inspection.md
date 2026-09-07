@@ -1,5 +1,8 @@
 # Phase 5B reconstruction and integration assessment
 
+Historical pre-integration evidence. See [the implemented integration](phase5b-integration.md)
+for current backend capabilities, frontend behavior and validation results.
+
 Observed 2026-09-07 (Asia/Phnom_Penh). Backend checkpoint:
 `5189d698c5441547c5f4a15b02fde3be71d5bd43`.
 

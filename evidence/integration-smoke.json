@@ -1,0 +1,48 @@
+{
+  "timestamp": "2026-09-07T01:07:33.660Z",
+  "backend": "748131b60bb1ae63256b02dd06bef6be56ef30f4",
+  "catalog": {
+    "plans": 3,
+    "packages": 12,
+    "addons": 4
+  },
+  "orders": [
+    {
+      "scenario": "weekly-mixed-pickup",
+      "customer_id": 3,
+      "order_id": 2,
+      "order_code": "VRN-20260907-000002",
+      "base_amount": "42.50",
+      "discount_amount": "3.40",
+      "discount_rule": "new_subscriber",
+      "addon_total": "13.00",
+      "total_amount": "52.10",
+      "payment_status": "unpaid",
+      "replay_verified": true,
+      "conflicting_key_rejected": true
+    },
+    {
+      "scenario": "monthly-delivery",
+      "customer_id": 4,
+      "order_id": 3,
+      "order_code": "VRN-20260907-000003",
+      "base_amount": "144.00",
+      "discount_amount": "7.20",
+      "discount_rule": "returning_subscriber",
+      "addon_total": "112.00",
+      "total_amount": "248.80",
+      "payment_status": "unpaid",
+      "replay_verified": true,
+      "conflicting_key_rejected": true
+    }
+  ],
+  "checks": [
+    "Public order CORS preflight allows Idempotency-Key",
+    "weekly-mixed-pickup: delivery validation rejected",
+    "weekly-mixed-pickup: invalid package rejected",
+    "weekly-mixed-pickup: invalid add-on rejected",
+    "monthly-delivery: delivery validation rejected",
+    "monthly-delivery: invalid package rejected",
+    "monthly-delivery: invalid add-on rejected"
+  ]
+}

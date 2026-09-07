@@ -15,27 +15,13 @@
         const DATA = window.DATA || {};
         const translations = window.translations || {};
 
-        // UPDATED PRICING DICTIONARY
-        const PRICING = {
-            weekly: {'A': 19.00, 'B': 23.00, 'C': 25.50, 'D': 20.00, 'E': 24.00, 'F': 27.00},
-            monthly: {'A': 60.00, 'B': 75.00, 'C': 85.00, 'D': 63.00, 'E': 77.00, 'F': 87.00},
-            delivery_fee_per_week: 0 // Base fee explicitly set to 0 for fallback
-        };
-
-        const isFridayInCambodia = (date = new Date()) => {
-            try {
-                return new Intl.DateTimeFormat('en-US', {timeZone:'Asia/Phnom_Penh', weekday:'short'}).format(date) === 'Fri';
-            } catch (error) {
-                return new Date(date.getTime() + (7 * 60 * 60 * 1000)).getUTCDay() === 5;
-            }
-        };
-
-        const getSubscriptionDiscount = (totalPackageCost, subType, subNumber) => {
-            if (isFridayInCambodia()) return {amount: totalPackageCost * 0.10, percentage: 0.10, type: 'friday'};
-            if (subType === 'new') return {amount: totalPackageCost * 0.08, percentage: 0.08, type: 'new'};
-            if (subType === 'old' && subNumber !== '') return {amount: totalPackageCost * 0.05, percentage: 0.05, type: 'old'};
-            return {amount: 0, percentage: 0, type: subType === 'old' ? 'old_required' : 'none'};
-        };
+        // Catalog and final amounts are exclusively supplied by the public API.
+        let catalog = null;
+        let checkoutClient = null;
+        let catalogLoading = false;
+        const apiText = () => CheckoutAPI.labels[currentLanguage];
+        const receipt = () => checkoutClient?.attempt?.receipt;
+        const escapeHTML = value => String(value ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 
         const PACKAGE_NAMES = {
             en: {A:'Everyday Salad — Meal Only',B:'Everyday Salad + Small Juice',C:'Everyday Salad + Large Juice',D:'High-Protein Salad — Meal Only',E:'High-Protein Salad + Small Juice',F:'High-Protein Salad + Large Juice'},
@@ -65,12 +51,9 @@
             D: ['muscle', 'none'], E: ['muscle', 'small'], F: ['muscle', 'large']
         };
         const FOCUS_PACKAGE_GROUPS = { weight_loss: ['A', 'B', 'C'], muscle: ['D', 'E', 'F'] };
-        const ADD_ONS = [
-            {value:'x2 Egg',en:'🥚 x2 Egg',kh:'🥚 ពងមាន់ x2'},
-            {value:'x2 Meat',en:'🥩 x2 Meat',kh:'🥩 សាច់ x2'},
-            {value:'x2 Chicken',en:'🍗 x2 Chicken',kh:'🍗 សាច់មាន់ x2'},
-            {value:'x2 Seafood',en:'🦐 x2 Seafood',kh:'🦐 គ្រឿងសមុទ្រ x2'}
-        ];
+        const ADD_ON_NAMES = {'X2-EGG':{en:'🥚 x2 Egg',kh:'🥚 ពងមាន់ x2'},'X2-MEAT':{en:'🥩 x2 Meat',kh:'🥩 សាច់ x2'},'X2-CHICKEN':{en:'🍗 x2 Chicken',kh:'🍗 សាច់មាន់ x2'},'X2-SEAFOOD':{en:'🦐 x2 Seafood',kh:'🦐 គ្រឿងសមុទ្រ x2'}};
+        const selectedAddons = new Map();
+
         const REMARK_OPTIONS = [
             {value:'double_sauce',en:'Double Sauce',kh:'ទឹកជ្រលក់x2'},
             {value:'no_cutlery',en:'No Cutlery',kh:'មិនយកស្លាបព្រាសម'},
@@ -79,25 +62,42 @@
         ];
 
         const FRIENDLY_TEXT = {
-            en:{weekly:'Weekly — 5 Meals',monthly:'Monthly — 20 Meals',newCustomer:'New Customer',returning:'Returning Customer',tomorrow:'Tomorrow',dayAfter:'Day After Tomorrow',monday:'Monday',districtOptional:'District (Optional)',districtPlaceholder:'Select district',remarkTitle:'7. Remark (Optional)',addonTitle:'8. Additional Add-ons (Optional)',subscriberTitle:'9. Subscriber Type',addonNote:'Chicken and seafood are charged only on the menu days containing them.',ticketInstructions:'Review your ticket below. You can send it directly to order via Telegram, copy the order information, or simply screenshot it to share.',copy:'Copy Summary',telegram:'Send to Telegram',flipQr:'Show QR Side',flipDetails:'Show Details Side',downloadQr:'Download Ticket with QR',qrTitle:'SCAN ORDER QR',qrHelp:'Screenshot or send this QR to Vearuny Kitchen.',perDay:'+$1/meal'},
-            kh:{weekly:'ប្រចាំសប្ដាហ៍ — ៥ ពេល',monthly:'ប្រចាំខែ — ២០ ពេល',newCustomer:'អតិថិជនថ្មី',returning:'អតិថិជនចាស់',tomorrow:'ថ្ងៃស្អែក',dayAfter:'ខានស្អែក',monday:'ថ្ងៃច័ន្ទ',districtOptional:'ខណ្ឌ',districtPlaceholder:'ជ្រើសរើសខណ្ឌ',remarkTitle:'៧. ចំណាំ',addonTitle:'៨. បន្ថែមមុខម្ហូប',subscriberTitle:'៩. ប្រភេទអតិថិជន',addonNote:'សាច់មាន់ និងគ្រឿងសមុទ្រ គិតថ្លៃតែតាមចំនួនថ្ងៃដែលមានក្នុងម៉ឺនុយប៉ុណ្ណោះ។',ticketInstructions:'សូមពិនិត្យសំបុត្រកម្ម៉ង់ខាងក្រោម។ អ្នកអាចផ្ញើការកម្ម៉ង់តាមតេលេក្រាម ចម្លងព័ត៌មានកម្ម៉ង់ ឬថតអេក្រង់ដើម្បីចែករំលែក។',copy:'ចម្លងសេចក្ដីសង្ខេប',telegram:'ផ្ញើទៅតេលេក្រាម',flipQr:'បង្ហាញផ្នែក QR',flipDetails:'បង្ហាញព័ត៌មានកម្ម៉ង់',downloadQr:'ទាញយកសំបុត្រជាមួយ QR',qrTitle:'ស្កេន QR ការកម្ម៉ង់',qrHelp:'ថតអេក្រង់ ឬផ្ញើ QR នេះទៅផ្ទះបាយវារុណី។',perDay:'+$1/ប្រអប់'}
+            en:{weekly:'Weekly — 5 Meals',monthly:'Monthly — 20 Meals',newCustomer:'New Customer',returning:'Returning Customer',tomorrow:'Tomorrow',dayAfter:'Day After Tomorrow',monday:'Monday',districtOptional:'District *',districtPlaceholder:'Select district',remarkTitle:'7. Remark (Optional)',addonTitle:'8. Additional Add-ons (Optional)',subscriberTitle:'9. Subscriber Type',addonNote:'Chicken and seafood are charged only on the menu days containing them.',ticketInstructions:'Review your ticket below. You can send it directly to order via Telegram, copy the order information, or simply screenshot it to share.',copy:'Copy Summary',telegram:'Send to Telegram',flipQr:'Show QR Side',flipDetails:'Show Details Side',downloadQr:'Download Ticket with QR',qrTitle:'SCAN ORDER QR',qrHelp:'Screenshot or send this QR to Vearuny Kitchen.',perDay:''},
+            kh:{weekly:'ប្រចាំសប្ដាហ៍ — ៥ ពេល',monthly:'ប្រចាំខែ — ២០ ពេល',newCustomer:'អតិថិជនថ្មី',returning:'អតិថិជនចាស់',tomorrow:'ថ្ងៃស្អែក',dayAfter:'ខានស្អែក',monday:'ថ្ងៃច័ន្ទ',districtOptional:'ខណ្ឌ',districtPlaceholder:'ជ្រើសរើសខណ្ឌ',remarkTitle:'៧. ចំណាំ',addonTitle:'៨. បន្ថែមមុខម្ហូប',subscriberTitle:'៩. ប្រភេទអតិថិជន',addonNote:'សាច់មាន់ និងគ្រឿងសមុទ្រ គិតថ្លៃតែតាមចំនួនថ្ងៃដែលមានក្នុងម៉ឺនុយប៉ុណ្ណោះ។',ticketInstructions:'សូមពិនិត្យសំបុត្រកម្ម៉ង់ខាងក្រោម។ អ្នកអាចផ្ញើការកម្ម៉ង់តាមតេលេក្រាម ចម្លងព័ត៌មានកម្ម៉ង់ ឬថតអេក្រង់ដើម្បីចែករំលែក។',copy:'ចម្លងសេចក្ដីសង្ខេប',telegram:'ផ្ញើទៅតេលេក្រាម',flipQr:'បង្ហាញផ្នែក QR',flipDetails:'បង្ហាញព័ត៌មានកម្ម៉ង់',downloadQr:'ទាញយកសំបុត្រជាមួយ QR',qrTitle:'ស្កេន QR ការកម្ម៉ង់',qrHelp:'ថតអេក្រង់ ឬផ្ញើ QR នេះទៅផ្ទះបាយវារុណី។',perDay:''}
         };
 
-        const getSelectedAddOns = () => [...document.querySelectorAll('.addon-checkbox:checked')].map(input => input.value);
-        const getOrderedPackages = (quantity) => {
+        const getOrderedPackages = quantity => {
             const main = document.getElementById('package')?.value || 'A';
             const different = document.getElementById('diff_packages_check')?.checked && quantity > 1;
             return different ? [main, ...[...document.querySelectorAll('.additional-pkg-select')].map(s=>s.value)] : Array(quantity).fill(main);
         };
-        const getAddOnCost = (plan, quantity) => {
-            const weeks = plan === 'monthly' ? 4 : 1;
-            const packages = getOrderedPackages(quantity);
-            return getSelectedAddOns().reduce((total,value)=>total+packages.reduce((subtotal,pkg)=>{
-                const highProtein = ['D','E','F'].includes(pkg);
-                const days = value === 'x2 Chicken' ? (highProtein ? 3 : 2)
-                    : value === 'x2 Seafood' ? (highProtein ? 1 : 2) : 5;
-                return subtotal + (days * weeks);
-            },0),0);
+        const renderAddons = () => {
+            const box = document.getElementById('addon-options');
+            box.replaceChildren();
+            if (!catalog) return;
+            const quantity = Number(document.getElementById('quantity').value);
+            if (!Number.isInteger(quantity) || quantity < 1 || quantity > 100) return;
+            const codes = getOrderedPackages(quantity);
+            for (const key of selectedAddons.keys()) if (key >= codes.length) selectedAddons.delete(key);
+            const plan = document.getElementById('plan_type').value.toUpperCase();
+            codes.forEach((code,index) => {
+                const fieldset = document.createElement('fieldset'); fieldset.className = 'p-3 rounded-xl border-2 space-y-2';
+                const legend = document.createElement('legend'); legend.textContent = `${currentLanguage==='kh'?'ឈុត':'Set'} ${index+1} · ${code}`; fieldset.append(legend);
+                const selected = selectedAddons.get(index) || new Set(); selectedAddons.set(index,selected);
+                catalog.addons.filter(a => ADD_ON_NAMES[a.code]).forEach(addon => {
+                    const rule = addon.pricing_rules.find(r => r.plan_code===plan && r.package_group===('ABC'.includes(code)?'A-C':'D-F'));
+                    if (!rule) { selected.delete(addon.id); return; }
+                    const label = document.createElement('label'); label.className = 'flex items-center gap-2 text-sm';
+                    const input = document.createElement('input'); input.type='checkbox'; input.className='addon-checkbox'; input.checked=selected.has(addon.id);
+                    input.dataset.item=String(index); input.value=addon.id;
+                    input.onchange=()=>{if(input.checked)selected.add(addon.id);else selected.delete(addon.id);};
+                    const text = document.createElement('span');
+                    // Display API rule operands only; the API computes all effective charges.
+                    text.textContent = `${ADD_ON_NAMES[addon.code][currentLanguage]} · $${rule.price_per_meal}/${currentLanguage==='kh'?'ពេល':'meal'} · ${rule.applicable_meal_count} ${currentLanguage==='kh'?'ពេលក្នុងឈុត':'applicable meals/set'}`;
+                    label.append(input,text); fieldset.append(label);
+                });
+                box.append(fieldset);
+            });
         };
 
         const styleChoiceButtons = (container) => {
@@ -118,7 +118,8 @@
             box.querySelectorAll('button').forEach(button=>{
                 const code=button.dataset.value;
                 const popular=code==='B' ? `<span class="text-xs px-2 py-1 rounded-full" style="background:var(--brand-primary);color:white;">${kh?'ពេញនិយមបំផុត':'Most Popular'}</span>` : '';
-                button.innerHTML=`<span class="flex justify-between items-start gap-2"><span class="text-xs font-bold">${kh?'ឈុត':'SET'} ${code}</span>${popular}</span><span class="block mt-2">${PACKAGE_NAMES[currentLanguage][code]}</span><span class="block mt-2 font-bold" style="color:var(--brand-primary);">$${PRICING[plan][code].toFixed(2)} / ${kh?(plan==='monthly'?'ខែ':'សប្ដាហ៍'):plan.replace('ly','')}</span>`;
+                button.disabled = !catalog || !catalog.packages.some(p=>p.plan_code===plan.toUpperCase()&&p.package_code===code&&p.status==='active'&&Number(p.price)>0);
+                button.innerHTML=`<span class="flex justify-between items-start gap-2"><span class="text-xs font-bold">${kh?'ឈុត':'SET'} ${code}</span>${popular}</span><span class="block mt-2">${PACKAGE_NAMES[currentLanguage][code]}</span><span class="block mt-2 font-bold" style="color:var(--brand-primary);">${catalogPrice(plan,code)} / ${kh?(plan==='monthly'?'ខែ':'សប្ដាហ៍'):plan.replace('ly','')}</span>`;
             });
         };
 
@@ -204,7 +205,7 @@
             const date = new Date();
             date.setDate(date.getDate() + offset);
             const input = document.getElementById('start_date');
-            input.value = date.toISOString().slice(0, 10);
+            input.value = localDate(date);
             document.querySelectorAll('.quick-date-btn').forEach(btn => btn.style.boxShadow = 'none');
             if (button) button.style.boxShadow = '0 0 0 2px var(--brand-primary)';
             input.dispatchEvent(new Event('change', {bubbles: true}));
@@ -256,7 +257,6 @@
             REMARK_OPTIONS.forEach(item=>{const b=document.createElement('button');b.type='button';b.dataset.value=item.value;b.textContent=item[currentLanguage];b.className='p-2 rounded-lg border text-xs font-semibold';b.onclick=()=>{const input=document.getElementById('remark');const parts=input.value.split(',').map(x=>x.trim()).filter(Boolean);const pos=parts.findIndex(part=>part===item.en||part===item.kh);if(pos>=0){parts.splice(pos,1);b.style.boxShadow='none';}else{parts.push(item[currentLanguage]);b.style.boxShadow='0 0 0 2px var(--brand-primary)';}input.value=parts.join(', ');input.dispatchEvent(new Event('input',{bubbles:true}));};remarkBox.appendChild(b);});
 
             const addonBox=document.getElementById('addon-options');
-            ADD_ONS.forEach(item=>{const label=document.createElement('label');label.className='p-3 rounded-xl border-2 cursor-pointer flex items-center gap-3 text-sm font-semibold';label.innerHTML=`<input type="checkbox" class="addon-checkbox" value="${item.value}"> <span>${item[currentLanguage] || item.en} (${ft.perDay})</span>`;label.querySelector('input').onchange=updatePriceSummary;addonBox.appendChild(label);});
             document.getElementById('addon-title').textContent=ft.addonTitle;
             document.getElementById('addon-note').textContent=ft.addonNote;
             document.getElementById('remark-title').textContent=ft.remarkTitle;
@@ -303,7 +303,6 @@
             const remarkParts=remarkInput.value.split(',').map(x=>x.trim()).filter(Boolean).map(part=>{const item=REMARK_OPTIONS.find(x=>x.en===part||x.kh===part);return item?item[currentLanguage]:part;});
             remarkInput.value=remarkParts.join(', ');
             document.querySelectorAll('#remark-quick-options button').forEach((b,i)=>b.textContent=REMARK_OPTIONS[i][currentLanguage]);
-            document.querySelectorAll('#addon-options label span').forEach((s,i)=>s.textContent=`${ADD_ONS[i][currentLanguage] || ADD_ONS[i].en} (${ft.perDay})`);
             const pickupButtons=document.getElementById('pickup_time-buttons');
             if(pickupButtons){pickupButtons.remove();document.getElementById('pickup_time').classList.remove('hidden');convertSelectToButtons('pickup_time',null,'grid-cols-1 sm:grid-cols-3');}
             document.getElementById('addon-title').textContent=ft.addonTitle;
@@ -360,7 +359,7 @@
             const container = document.getElementById('additional-packages-container');
             container.innerHTML = '';
 
-            const extrasNeeded = qty - 1;
+            const extrasNeeded = Math.min(100, Math.max(1, qty)) - 1;
             const t = translations[currentLanguage];
             const labelTemplate = t.label_package_num || "Package #{n}";
             const options = ['A', 'B', 'C', 'D', 'E', 'F'];
@@ -426,7 +425,7 @@
         let isMobilePlatform = false;
 
         // --- UTILITY FUNCTIONS ---
-        const showAlert = (message) => { };
+        const showAlert = message => { const status=document.getElementById('checkout-status'); status.textContent=message; status.scrollIntoView({block:'nearest'}); };
 
         const formatDate = (dateString) => {
             if (!dateString) return '';
@@ -444,7 +443,12 @@
         // --- FUNCTIONS ---
         const setLanguage = (lang) => {
             if (!translations[lang]) return;
+            const previousLanguage=currentLanguage;
+            const districtIndex=DATA[previousLanguage].districts.indexOf(document.getElementById('district').value);
+            const communeIndex=(DATA[previousLanguage].communes[document.getElementById('district').value]||[]).indexOf(document.getElementById('commune').value);
+            const pickupIndex=DATA[previousLanguage].pickup_times.indexOf(document.getElementById('pickup_time').value);
             currentLanguage = lang;
+            document.documentElement.lang=lang==='kh'?'km':'en';
             const t = translations[lang];
 
             document.querySelectorAll('[data-lang-key]').forEach(el => {
@@ -487,16 +491,20 @@
             populateSelect('district', DATA[lang].districts, true, 'select_district_placeholder');
             const districtSelect = document.getElementById('district');
             if (districtSelect?.options?.[0]) districtSelect.options[0].textContent = FRIENDLY_TEXT[lang].districtPlaceholder;
+            if(districtIndex>=0) districtSelect.value=DATA[lang].districts[districtIndex];
             if (districtSelect) updateCommuneOptions(districtSelect.value);
             else updateCommuneOptions();
+            if(communeIndex>=0)document.getElementById('commune').value=DATA[lang].communes[districtSelect.value]?.[communeIndex] || '';
 
             populateSelect('time_slot', ['8:00 AM - 10:00 AM', '10:00 AM - 12:00 PM', '3:00 PM - 5:00 PM', '4:00 PM - 6:00 PM']);
             populateSelect('pickup_time', DATA[lang].pickup_times);
+            if(pickupIndex>=0)document.getElementById('pickup_time').value=DATA[lang].pickup_times[pickupIndex];
 
             showMenuImage();
             updatePlanNotesVisibility();
             updatePriceSummary();
             refreshFriendlyLanguage();
+            refreshCheckoutState();
 
             const modal = document.getElementById('ticket-modal');
             if (modal && !modal.classList.contains('hidden')) {
@@ -507,6 +515,7 @@
                 const ticketTextArea = document.getElementById('ticket-text-area');
                 if(ticketTextArea) ticketTextArea.value = generateTicketPlainText(formData);
                 generateQRCodes();
+                renderOrderQrCode(`https://t.me/${ADMIN_USERNAME}?text=${encodeURIComponent(buildOrderQrPayload())}`);
             }
 
             const nutBtnText = document.getElementById('btn-nutrition-text');
@@ -685,117 +694,90 @@
             };
         };
 
+        const catalogPrice = (plan, code) => {
+            try { return '$' + CheckoutAPI.packageFor(catalog,plan,code).price; } catch { return '—'; }
+        };
+        const localDate = d => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
         const updatePriceSummary = () => {
-            const packageSelect = document.getElementById('package');
-            const planSelect = document.getElementById('plan_type');
-            const quantityInput = document.getElementById('quantity');
-            const methodRadio = document.querySelector('input[name="method"]:checked');
-            const diffCheck = document.getElementById('diff_packages_check');
-
-            const subscriberSelect = document.getElementById('subscriber_type');
-            const subNumberInput = document.getElementById('subscription_number');
-            const promoStatusEl = document.getElementById('promo-status');
-
-            const mainPackage = packageSelect ? packageSelect.value : 'A';
-            const plan = planSelect ? planSelect.value : 'weekly';
-            const quantity = quantityInput ? (parseInt(quantityInput.value) || 1) : 1;
-            const method = methodRadio ? methodRadio.value : 'delivery';
-
-            const subType = subscriberSelect ? subscriberSelect.value : 'none';
-            const subNumber = subNumberInput ? subNumberInput.value.trim() : '';
-            const t = translations[currentLanguage];
-
-            let totalPackageCost = 0;
-
-            if (diffCheck && diffCheck.checked && quantity > 1) {
-                totalPackageCost += (PRICING[plan]?.[mainPackage] || 0);
-                const additionalSelects = document.querySelectorAll('.additional-pkg-select');
-                additionalSelects.forEach(sel => {
-                    totalPackageCost += (PRICING[plan]?.[sel.value] || 0);
-                });
-            } else {
-                const basePrice = PRICING[plan]?.[mainPackage] || 0;
-                totalPackageCost = basePrice * quantity;
+            const plan = document.getElementById('plan_type').value;
+            const quantity = Number(document.getElementById('quantity').value);
+            let base = null;
+            if (catalog && Number.isInteger(quantity) && quantity>0 && quantity<=100) {
+                try { base = getOrderedPackages(quantity).reduce((sum,code)=>sum+Math.round(Number(CheckoutAPI.packageFor(catalog,plan,code).price)*100),0)/100; } catch {}
             }
-
-            let deliveryCost = 0;
-            let isDeliveryFree = false;
-
-            if (method === 'delivery') {
-                // 100% discount or Free until next 2027 for both weekly and monthly
-                deliveryCost = 0;
-                isDeliveryFree = true;
-            }
-
-            const discount = getSubscriptionDiscount(totalPackageCost, subType, subNumber);
-            const discountAmount = discount.amount;
-            const discountPercentage = discount.percentage;
-
-            if (discount.type === 'friday') {
-                promoStatusEl.textContent = currentLanguage === 'kh'
-                    ? 'ប្រូម៉ូសិនថ្ងៃសុក្រ៖ បញ្ចុះតម្លៃ ១០% លើគម្រោងជាវទាំងអស់។'
-                    : 'Friday offer: 10% off all subscription plans.';
-                promoStatusEl.style.color = "var(--brand-primary)";
-                promoStatusEl.style.display = 'block';
-            } else if (discount.type === 'new') {
-                promoStatusEl.textContent = t.promo_status_new_applied;
-                promoStatusEl.style.color = "var(--brand-primary)";
-                promoStatusEl.style.display = 'block';
-            } else if (discount.type === 'old') {
-                promoStatusEl.textContent = t.promo_status_old_applied;
-                promoStatusEl.style.color = "var(--brand-primary)";
-                promoStatusEl.style.display = 'block';
-            } else if (discount.type === 'old_required') {
-                promoStatusEl.textContent = t.promo_status_old_required;
-                promoStatusEl.style.color = "#DC2626";
-                promoStatusEl.style.display = 'block';
-            } else {
-                promoStatusEl.style.display = 'none';
-            }
-
-            const addOnCost = getAddOnCost(plan, quantity);
-            const totalCost = (totalPackageCost - discountAmount) + deliveryCost + addOnCost;
-
-            const summaryPackageCostEl = document.getElementById('summary-package-cost');
-            const summaryDeliveryCostEl = document.getElementById('summary-delivery-cost');
-            const summaryTotalCostEl = document.getElementById('summary-total-cost');
-            const deliveryCostRow = document.getElementById('delivery-cost-row');
-            const deliveryFeeNote = document.getElementById('delivery-fee-note');
-            const totalMealInfoEl = document.getElementById('total-meal-info');
-            const discountRow = document.getElementById('discount-row');
-            const summaryDiscountEl = document.getElementById('summary-discount');
-            const addOnCostRow = document.getElementById('addon-cost-row');
-            const summaryAddOnCostEl = document.getElementById('summary-addon-cost');
-
-            if (summaryPackageCostEl) summaryPackageCostEl.textContent = `$${totalPackageCost.toFixed(2)}`;
-            if (summaryDeliveryCostEl) summaryDeliveryCostEl.textContent = `$${deliveryCost.toFixed(2)}`;
-            if (summaryTotalCostEl) summaryTotalCostEl.textContent = `$${totalCost.toFixed(2)}`;
-            if (summaryAddOnCostEl) summaryAddOnCostEl.textContent = `$${addOnCost.toFixed(2)}`;
-            if (addOnCostRow) addOnCostRow.style.display = addOnCost > 0 ? 'flex' : 'none';
-
-            if (deliveryCostRow) deliveryCostRow.classList.toggle('delivery-free', isDeliveryFree);
-            if (deliveryFeeNote) {
-                deliveryFeeNote.style.display = isDeliveryFree ? 'block' : 'none';
-                deliveryFeeNote.textContent = t.delivery_free_note || "Free delivery applied!";
-            }
-
-            if (discountAmount > 0) {
-                if (summaryDiscountEl) summaryDiscountEl.textContent = `-$${discountAmount.toFixed(2)} (${Math.round(discountPercentage * 100)}%)`;
-                if (discountRow) discountRow.style.display = 'flex';
-            } else {
-                if (summaryDiscountEl) summaryDiscountEl.textContent = `-$0.00`;
-                if (discountRow) discountRow.style.display = 'none';
-            }
-
-            if (totalMealInfoEl) {
-                 const baseMeals = plan === 'weekly' ? 5 : 20;
-                 const totalMealsForUser = baseMeals * quantity;
-                 const totalDays = baseMeals;
-                 const mealInfoText = (t.summary_total_meals || "You will receive {TotalMeals} meals for {TotalDays} days.")
-                                       .replace('{TotalMeals}', totalMealsForUser)
-                                       .replace('{TotalDays}', totalDays);
-                 totalMealInfoEl.textContent = mealInfoText;
-            }
+            document.getElementById('summary-package-cost').textContent = base===null?'—':`$${base.toFixed(2)}`;
+            document.getElementById('summary-total-cost').textContent = '—';
+            document.getElementById('total-meal-info').textContent = apiText().pending;
+            for (const id of ['discount-row','delivery-cost-row','delivery-fee-note','promo-status']) document.getElementById(id).style.display='none';
+            document.getElementById('addon-cost-row').style.display='flex';
+            document.getElementById('summary-addon-cost').textContent='—';
+            const delivery = document.querySelector('input[name="method"]:checked')?.value==='delivery';
+            for (const id of ['district','commune','address']) document.getElementById(id).required=delivery;
+            document.querySelector('label[for="commune"]').textContent=currentLanguage==='kh'?'សង្កាត់ *':'Commune *';
+            document.getElementById('nutrition-notes-label').textContent=apiText().nutrition;
+            renderAddons();
+            refreshCheckoutState();
+        };
+        const refreshCheckoutState = () => {
+            const attempt = checkoutClient?.attempt;
+            const locked = Boolean(attempt && !attempt.rejected);
+            const form = document.getElementById('meal-order-form');
+            form.querySelectorAll('input,select,textarea,button').forEach(el => {
+                if (el.id==='generate-ticket-btn' || el.id==='new-order-btn') return;
+                if (locked) { if (!el.disabled) {el.dataset.checkoutLocked='1'; el.disabled=true;} }
+                else if(el.dataset.checkoutLocked) {el.disabled=false; delete el.dataset.checkoutLocked;}
+            });
+            const button = document.getElementById('generate-ticket-btn');
+            button.disabled=!checkoutClient || checkoutClient.pending || (!catalog && !attempt) || Boolean(attempt?.receipt);
+            button.textContent=checkoutClient?.pending?apiText().loading:attempt&&!attempt.rejected?apiText().retry:apiText().create;
+            button.setAttribute('aria-busy',String(Boolean(checkoutClient?.pending)));
+            const reset = document.getElementById('new-order-btn');
+            document.getElementById('receipt-open-btn').hidden=!attempt?.receipt;
+            reset.hidden=!(attempt?.receipt || attempt?.rejected); reset.textContent=apiText().newOrder;
+            document.getElementById('ticket-instructions').textContent=apiText().created;
+        };
+        let restoredAttempt = false;
+        const restoreAttemptForm = () => {
+            const attempt=checkoutClient?.attempt;
+            if (!attempt || restoredAttempt || !catalog) return;
+            const order=attempt.order;
+            const plan=catalog.plans.find(p=>p.id===order.meal_plan_id);
+            if (!plan) return; // Exact frozen payload remains retryable even if its catalog disappeared.
+            const sets=order.items.flatMap(item=>Array.from({length:item.quantity},()=>({code:catalog.packages.find(p=>p.id===item.package_id)?.package_code,addons:item.addons})));
+            if(sets.some(set=>!set.code))return;
+            restoredAttempt=true;
+            const value=(id,v)=>{document.getElementById(id).value=v || '';};
+            value('plan_type',plan.code.toLowerCase()); value('quantity',sets.length); value('package',sets[0].code);
+            document.getElementById('diff_packages_check').checked=sets.some(set=>set.code!==sets[0].code);
+            handleQuantityChange();
+            document.querySelectorAll('.additional-pkg-select').forEach((select,index)=>{select.value=sets[index+1].code;});
+            selectedAddons.clear();sets.forEach((set,index)=>selectedAddons.set(index,new Set(set.addons.map(a=>a.id))));
+            value('customer_name',attempt.customer.name);value('phone',attempt.customer.phone);
+            for(const id of ['start_date','subscriber_type','nutrition_notes'])value(id,order[id]);
+            value('subscription_number',order.previous_subscription_number);value('remark',order.customer_remarks);
+            value('address',order.address);
+            const originalLang=attempt.customer.language==='KH'?'kh':'en';
+            const districtIndex=DATA[originalLang].districts.indexOf(order.district);
+            value('district',districtIndex>=0?DATA[currentLanguage].districts[districtIndex]:order.district);
+            updateCommuneOptions(document.getElementById('district').value);
+            const communeIndex=(DATA[originalLang].communes[order.district]||[]).indexOf(order.commune);
+            value('commune',communeIndex>=0?DATA[currentLanguage].communes[document.getElementById('district').value]?.[communeIndex]:order.commune);
+            document.querySelectorAll('input[name="method"]').forEach(input=>{input.checked=input.value===order.fulfillment_method;});
+            value(order.fulfillment_method==='pickup'?'pickup_time':'time_slot',order.fulfillment_time);
+            syncFocusJuiceFromPackage();handleSubscriberTypeChange();toggleMethodFields();refreshFriendlyLanguage();
+        };
+        const loadCatalog = async () => {
+            if (catalogLoading) return;
+            catalogLoading=true;
+            showAlert(apiText().catalog);
+            try {
+                catalog=await checkoutClient.catalog();
+                restoreAttemptForm();
+                document.getElementById('catalog-retry-btn').hidden=true;
+                showAlert(checkoutClient.attempt?apiText().recovery:'');
+                refreshPackageButtonPrices(); updatePriceSummary();
+            } catch(error) { showAlert(`${apiText().error} ${error.message}`); document.getElementById('catalog-retry-btn').hidden=false; }
+            finally { catalogLoading=false; refreshCheckoutState(); }
         };
 
         const validateForm = (formId) => {
@@ -920,297 +902,11 @@
 
 
         // Keep the Telegram payload compact. Long t.me URLs are unreliable on some mobile browsers.
-        const generateTicketPlainText = (formData) => {
-             const t = translations[currentLanguage];
-             const getLabel = (key) => t[key] || translations.en[key] || key;
-             const getPlanLabel = (value) => value === 'weekly' ? getLabel('plan_weekly') : getLabel('plan_monthly');
-             const getMethodLabel = (value) => value === 'delivery' ? getLabel('method_delivery') : getLabel('method_pickup');
-
-             const plan = formData.plan_type || 'N/A';
-             const quantity = parseInt(formData.quantity) || 1;
-             const method = formData.method || 'N/A';
-
-             const diffCheck = document.getElementById('diff_packages_check');
-             const isMulti = diffCheck && diffCheck.checked && quantity > 1;
-
-             let packageDisplayStr = "";
-             let totalPackageCost = 0;
-
-             const mainPkgVal = formData.package || 'A';
-             const pkgKeyMain = 'package_' + mainPkgVal.toLowerCase();
-             const mainPkgName = getLabel(pkgKeyMain) || mainPkgVal;
-
-             if (isMulti) {
-                let names = [mainPkgName];
-                totalPackageCost += (PRICING[plan]?.[mainPkgVal] || 0);
-
-                const extras = document.querySelectorAll('.additional-pkg-select');
-                extras.forEach(sel => {
-                    const val = sel.value;
-                    const k = 'package_' + val.toLowerCase();
-                    names.push(getLabel(k) || val);
-                    totalPackageCost += (PRICING[plan]?.[val] || 0);
-                });
-                packageDisplayStr = names.join(" + ");
-             } else {
-                packageDisplayStr = mainPkgName;
-                const basePrice = PRICING[plan]?.[mainPkgVal] || 0;
-                totalPackageCost = basePrice * quantity;
-             }
-
-             let deliveryCost = 0;
-             let isDeliveryFree = false;
-             if (method === 'delivery') {
-                 // 100% discount or Free until next 2027 for both weekly and monthly
-                 deliveryCost = 0;
-                 isDeliveryFree = true;
-             }
-
-             const subType = formData.subscriber_type || 'none';
-             const subNumber = formData.subscription_number ? formData.subscription_number.trim() : '';
-             let subTypeLabel = getLabel('subscriber_none_ticket');
-
-             if (subType === 'new') {
-                 subTypeLabel = getLabel('subscriber_new_ticket');
-             } else if (subType === 'old' && subNumber !== '') {
-                 subTypeLabel = getLabel('subscriber_old_ticket');
-             } else if (subType === 'old') {
-                 subTypeLabel = getLabel('subscriber_old');
-             }
-
-             const discount = getSubscriptionDiscount(totalPackageCost, subType, subNumber);
-             const discountAmount = discount.amount;
-             const discountPercentage = discount.percentage;
-
-             const addOnCost = getAddOnCost(plan, quantity);
-             const selectedAddOns = getSelectedAddOns();
-             const finalTotal = (totalPackageCost - discountAmount) + deliveryCost + addOnCost;
-
-            const clean = (value, max = 180) => String(value || 'N/A')
-                .replace(/[\r\n]+/g, ' ')
-                .replace(/\s+/g, ' ')
-                .trim()
-                .slice(0, max);
-            const kh = currentLanguage === 'kh';
-            const setText = isMulti
-                ? [mainPkgVal, ...[...document.querySelectorAll('.additional-pkg-select')].map(s=>s.value)].join(' + ')
-                : `${mainPkgVal}x${quantity}`;
-            const locationText = method === 'delivery'
-                ? clean([formData.district, formData.address].filter(Boolean).join(', '),180)
-                : getLabel('kitchen_name_short');
-            const timeText = method === 'delivery' ? clean(formData.time_slot,60) : clean(formData.pickup_time,60);
-            const mealType = ['A','D'].includes(mainPkgVal) ? 'MEAL ONLY' : 'MEAL + JUICE';
-            const localizedAddOns = selectedAddOns.map(value=>{
-                const item=ADD_ONS.find(x=>x.value===value);
-                return item ? (item[currentLanguage] || item.en).replace(/^[^ ]+\s/,'') : value;
-            });
-
-            const lines = kh ? [
-                `គម្រោង៖ ${plan === 'monthly' ? 'ប្រចាំខែ' : 'ប្រចាំសប្ដាហ៍'}`,
-                '',
-                `ឈុត៖ ${setText}`,
-                `ឈ្មោះ៖ ${clean(formData.customer_name,80)}`,
-                `លេខទូរស័ព្ទ៖ ${clean(formData.phone,30)}`,
-                `ទីតាំង៖ ${locationText}`,
-                `ម៉ោង៖ ${timeText}`,
-                `កាលបរិច្ឆេទចាប់ផ្តើម៖ ${formatDate(formData.start_date)}`,
-                `ចំណាំ៖ ${formData.remark ? clean(formData.remark,160) : ''}`
-            ] : [
-                `${plan === 'monthly' ? 'MONTHLY' : 'WEEKLY'} PLAN (${mealType})`,
-                '',
-                `SET: ${setText}`,
-                `Name: ${clean(formData.customer_name,80)}`,
-                `Contact: ${clean(formData.phone,30)}`,
-                `Location: ${locationText}`,
-                `Time: ${timeText}`,
-                `Start Date: ${formatDate(formData.start_date)}`,
-                `Remark: ${formData.remark ? clean(formData.remark,160) : ''}`
-            ];
-            if (localizedAddOns.length) lines.push(`${kh ? 'បន្ថែម' : 'Add-ons'}: ${localizedAddOns.join(', ')} (+$${addOnCost.toFixed(2)})`);
-            if (discountAmount > 0) lines.push(`${kh ? 'បញ្ចុះតម្លៃ' : 'Discount'}: -$${discountAmount.toFixed(2)} (${Math.round(discountPercentage * 100)}%)`);
-            lines.push('',`${kh ? 'សរុប' : 'Total'}: $${finalTotal.toFixed(2)}`);
-            return lines.join('\n');
-        };
-
-        const generateTicketCardHTML = (formData) => {
-            const t = translations[currentLanguage];
-            const getLabel = (key) => t[key] || translations.en[key] || key;
-            const getPlanLabel = (value) => value === 'weekly' ? getLabel('plan_weekly') : getLabel('plan_monthly');
-            const getMethodLabel = (value) => value === 'delivery' ? getLabel('method_delivery') : getLabel('method_pickup');
-            const sectionSubscription = currentLanguage === 'kh' ? 'ព័ត៌មានគម្រោង' : 'SUBSCRIPTION DETAILS';
-            const sectionContact = currentLanguage === 'kh' ? 'ទំនាក់ទំនង និងចំណាំ' : 'CONTACT & REMARKS';
-
-            const planVal = formData.plan_type || 'N/A';
-            const quantityVal = parseInt(formData.quantity) || 1;
-            const methodVal = formData.method || 'N/A';
-
-            const diffCheck = document.getElementById('diff_packages_check');
-            const isMulti = diffCheck && diffCheck.checked && quantityVal > 1;
-
-            let packageDisplayStr = "";
-            let totalPackageCost = 0;
-
-            const mainPkgVal = formData.package || 'A';
-            const pkgKeyMain = 'package_' + mainPkgVal.toLowerCase();
-            const mainPkgName = getLabel(pkgKeyMain) || mainPkgVal;
-
-            if (isMulti) {
-                 let packageList = [`<span class="font-bold text-[var(--brand-primary)]">${mainPkgName}</span>`];
-                 totalPackageCost += (PRICING[planVal]?.[mainPkgVal] || 0);
-
-                 const additionalSelects = document.querySelectorAll('.additional-pkg-select');
-                 additionalSelects.forEach(sel => {
-                    const val = sel.value;
-                    const k = 'package_' + val.toLowerCase();
-                    const name = getLabel(k) || val;
-                    packageList.push(`<span class="font-bold text-[var(--brand-primary)]">${name}</span>`);
-                    totalPackageCost += (PRICING[planVal]?.[val] || 0);
-                 });
-                 packageDisplayStr = packageList.join(` <span class="text-gray-400 text-xs mx-1">+</span> `);
-            } else {
-                 packageDisplayStr = mainPkgName;
-                 const basePrice = PRICING[planVal]?.[mainPkgVal] || 0;
-                 totalPackageCost = basePrice * quantityVal;
-            }
-
-            let deliveryCost = 0;
-            let isDeliveryFree = false;
-
-            if (methodVal === 'delivery') {
-                // 100% discount or Free until next 2027
-                deliveryCost = 0;
-                isDeliveryFree = true;
-            }
-
-            const subType = formData.subscriber_type || 'none';
-            const subNumber = formData.subscription_number ? formData.subscription_number.trim() : '';
-            let subTypeLabel = getLabel('subscriber_none_ticket');
-
-            if (subType === 'new') {
-                subTypeLabel = getLabel('subscriber_new_ticket');
-            } else if (subType === 'old' && subNumber !== '') {
-                subTypeLabel = getLabel('subscriber_old_ticket');
-            } else if (subType === 'old') {
-                subTypeLabel = getLabel('subscriber_old');
-            }
-
-            const discount = getSubscriptionDiscount(totalPackageCost, subType, subNumber);
-            const discountAmount = discount.amount;
-            const discountPercentage = discount.percentage;
-
-            const addOnCost = getAddOnCost(planVal, quantityVal);
-            const selectedAddOns = getSelectedAddOns();
-            const localizedCardAddOns = selectedAddOns.map(value=>{
-                const item=ADD_ONS.find(x=>x.value===value);
-                return item ? (item[currentLanguage] || item.en) : value;
-            });
-            const finalTotal = (totalPackageCost - discountAmount) + deliveryCost + addOnCost;
-
-            const qrRenderPlaceholder = `
-                <div id="ticket-qr-codes" style="display: none;">
-                     <div class="qr-code-item">
-                         <img id="qr-usd-png" src="" alt="USD QR Code">
-                          <p>${getLabel('USD ($)')}</p>
-                     </div>
-                     <div class="qr-code-item">
-                         <img id="qr-khr-png" src="" alt="KHR QR Code">
-                          <p>${getLabel('KHR (៛)')}</p>
-                     </div>
-                </div>`;
-
-             const baseMeals = planVal === 'weekly' ? 5 : 20;
-             const totalMealsForUser = baseMeals * quantityVal;
-             const mealInfoText = getLabel('summary_total_meals')
-                                     .replace('{TotalMeals}', totalMealsForUser)
-                                     .replace('{TotalDays}', baseMeals);
-
-            // Keep this heading in Latin characters because some mobile canvas exports cannot embed Khmer reliably.
-            const qrTitle = 'SCAN ORDER QR';
-            const qrHelp = 'Scan to open Telegram with your order information ready to send.';
-            const customerTypeFooter = subType === 'old' ? 'RETURNING CUSTOMER' : 'NEW CUSTOMER';
-            let cardHtml = `
-              <div class="ticket-flipper">
-               <section class="ticket-face ticket-front">
-                 <img id="ticket-logo-png" src="${logoDataUrl}" alt="Logo">
-                <div class="ticket-header">
-                    <h3 class="text-2xl font-bold tracking-wide">${getLabel('header_title')}</h3>
-                    <p class="text-sm font-light italic mt-1" style="color: var(--brand-hint);">${getLabel('ticket_subtitle')}</p>
-                </div>
-                <div class="boarding-pass-layout">
-                  <div class="boarding-main">
-                    <div class="ticket-section-title">${sectionSubscription}</div>
-                    <div class="ticket-item"><span>${getLabel('field_package')}:</span> <div class="inline-block">${packageDisplayStr}</div></div>
-
-                    <div class="ticket-item"><span>${getLabel('field_plan')}:</span> <strong>${getPlanLabel(planVal)}</strong></div>
-                    <div class="ticket-item"><span>${getLabel('field_quantity')}:</span> <strong>${quantityVal}</strong></div>
-                    <div class="ticket-item"><span>${getLabel('field_start_date')}:</span> <strong>${formatDate(formData.start_date)}</strong></div>
-                    <div class="ticket-item"><span>${getLabel('field_method')}:</span> <strong>${getMethodLabel(methodVal)}</strong></div>
-
-                    ${methodVal === 'delivery' ? `
-                        <div class="ml-4 mt-2">
-                            ${formData.district ? `<div class="ticket-item"><span>${getLabel('field_district')}:</span> <strong>${formData.district}</strong></div>` : ''}
-                             ${formData.commune ? `<div class="ticket-item"><span>${getLabel('field_commune')}:</span> <strong>${formData.commune}</strong></div>` : ''}
-                            <div class="ticket-item"><span>${getLabel('field_address')}:</span> <strong>${formData.address || 'N/A'}</strong></div>
-                            <div class="ticket-item"><span>${getLabel('field_delivery_time')}:</span> <strong>${formData.time_slot}</strong></div>
-                        </div>
-                    ` : `
-                        <div class="ml-4 mt-2">
-                            <div class="ticket-item"><span>${getLabel('field_pickup_time')}:</span> <strong>${formData.pickup_time}</strong></div>
-                            <div class="ticket-item"><span>${getLabel('label_location')}:</span> <strong><a href="${PICKUP_LOCATION_LINK}" target="_blank" class="underline" style="color: var(--brand-accent-2);">${getLabel('kitchen_name_short')}</a></strong></div>
-                        </div>
-                    `}
-
-                    <div class="ticket-section-title">${sectionContact}</div>
-                    <div class="ticket-item"><span>${getLabel('field_contact_name')}:</span> <strong>${formData.customer_name}</strong></div>
-                    <div class="ticket-item"><span>${getLabel('field_phone')}:</span> <strong>${formData.phone}</strong></div>
-                    <div class="ticket-item"><span>${getLabel('field_remark')}:</span> <strong>${formData.remark || 'N/A'}</strong></div>
-                    <div class="ticket-item"><span>${getLabel('field_subscriber_type')}:</span> <strong>${subTypeLabel}</strong></div>
-                    ${subType === 'old' ? `<div class="ticket-item"><span>${getLabel('field_subscription_number')}:</span> <strong>${subNumber || 'N/A'}</strong></div>` : ''}
-
-                  </div>
-                  <aside class="boarding-stub">
-                     <div class="ticket-section-title">${getLabel('summary_title')}</div>
-                     <p class="text-sm italic px-2 mb-2" style="color: var(--brand-hint);">${mealInfoText}</p>
-                     <div class="ticket-item"><span>${getLabel('summary_package_cost')}:</span> <strong>$${totalPackageCost.toFixed(2)}</strong></div>
-                     <div class="ticket-item"><span>${getLabel('summary_delivery_cost')}:</span> <strong>$${deliveryCost.toFixed(2)}${isDeliveryFree ? ` (${getLabel('delivery_free_note')})` : ''}</strong></div>
-                     ${localizedCardAddOns.length ? `<div class="ticket-item"><span>${currentLanguage === 'kh' ? 'បន្ថែមមុខម្ហូប' : 'Add-ons'}:</span> <strong>${localizedCardAddOns.join(', ')} (+$${addOnCost.toFixed(2)})</strong></div>` : ''}
-
-                     ${discountAmount > 0 ? `
-                        <div class="ticket-item" style="color: #DC2626;">
-                            <span>${getLabel('summary_discount')}:</span>
-                            <strong>-$${discountAmount.toFixed(2)} (${Math.round(discountPercentage * 100)}%)</strong>
-                        </div>
-                     ` : ''}
-
-                    <div class="ticket-total">
-                        <span>${getLabel('field_total_cost')}:</span> <strong>$${finalTotal.toFixed(2)} USD</strong>
-                    </div>
-                    <div class="ticket-footer">
-                        ${getLabel('ticket_footer_message')}
-                    </div>
-                  </aside>
-                </div>
-                 ${qrRenderPlaceholder}
-               </section>
-               <section class="ticket-face ticket-back">
-                  <div class="qr-ticket-brand"><img class="qr-ticket-logo" src="${logoDataUrl}" alt="Vearuny Kitchen" crossorigin="anonymous"><div class="qr-customer-type">${customerTypeFooter}</div></div>
-                  <h3>${qrTitle}</h3>
-                  <div id="order-qr-code" class="order-qr-code" aria-label="Order QR code"></div>
-                  <div class="qr-scan-cue" aria-hidden="true"><span class="qr-up-arrow">↑</span><strong>SCAN TO SEND ORDER</strong></div>
-                  <p>${qrHelp}</p>
-                  <div class="qr-social-links">
-                    <a href="https://www.facebook.com/vearuny/" target="_blank" rel="noopener" aria-label="Vearuny Kitchen on Facebook"><span class="social-icon facebook-icon"><svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true"><path d="M14 8h3V4h-3c-3.3 0-6 2.7-6 6v2H5v4h3v8h4v-8h4l1-4h-5v-2c0-1.1.9-2 2-2Z"/></svg></span><span>Vearuny Kitchen</span></a>
-                    <a href="https://www.instagram.com/vearuny/" target="_blank" rel="noopener" aria-label="Vearuny Kitchen on Instagram"><span class="social-icon instagram-icon"><svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="5"/><circle cx="12" cy="12" r="4"/><circle class="instagram-dot" cx="17.5" cy="6.5" r="1"/></svg></span><span>@vearuny</span></a>
-                    <a href="https://t.me/vearuny" target="_blank" rel="noopener" aria-label="Vearuny Kitchen on Telegram"><span class="social-icon telegram-icon"><svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true"><path d="M21.7 3.4 18.5 20c-.2 1.2-.9 1.5-1.9.9l-4.9-3.6-2.4 2.3c-.3.3-.5.5-1 .5l.4-5 9.1-8.2c.4-.4-.1-.6-.6-.2L6 13.8l-4.8-1.5c-1-.3-1.1-1 .2-1.5L20.2 3.5c.9-.3 1.7.2 1.5-.1Z"/></svg></span><span>@vearuny</span></a>
-                  </div>
-                  <div class="qr-ticket-reference">
-                    <div class="qr-order-meta"><span>${planVal === 'monthly' ? 'MONTHLY' : 'WEEKLY'} • ${mainPkgVal}x${quantityVal} • $${finalTotal.toFixed(2)}</span></div>
-                    <div class="qr-footer-copy"><b>THANK YOU FOR ORDERING WITH US</b><small>Please confirm in Telegram. Changes require 24-hour notice.</small></div>
-                  </div>
-               </section>
-              </div>
-            `;
-            return cardHtml;
+        const generateTicketPlainText = () => CheckoutAPI.receiptLines(receipt(), currentLanguage).map(([key,value])=>`${key}: ${value}`).join('\n');
+        const generateTicketCardHTML = () => {
+            const lines = CheckoutAPI.receiptLines(receipt(),currentLanguage);
+            if (!lines.length) return '';
+            return `<div class="ticket-flipper"><section class="ticket-face ticket-front"><div class="boarding-pass-layout"><div class="boarding-main"><img src="graylogo.png" alt="Vearuny" class="h-16 mx-auto"><div class="ticket-section-title">${escapeHTML(apiText().created)}</div>${lines.map(([k,v])=>`<div class="ticket-item"><span>${escapeHTML(k)}</span><strong>${escapeHTML(v)}</strong></div>`).join('')}<div class="mt-4 text-center">${escapeHTML(translations[currentLanguage].payment_instructions || (currentLanguage==='kh'?'សូមទូទាត់តាម PayWay':'Pay using the existing PayWay links'))}<div class="flex justify-center gap-6 mt-4"><div><a href="${PAYWAY_USD_LINK}" target="_blank" rel="noopener">PayWay USD</a><div id="qrcode-usd"></div></div><div><a href="${PAYWAY_KHR_LINK}" target="_blank" rel="noopener">PayWay KHR</a><div id="qrcode-khr"></div></div></div></div></div></div></section><section class="ticket-face ticket-back"><div class="qr-ticket-brand"><img class="qr-ticket-logo" src="graylogo.png" alt="Vearuny"></div><h3>${escapeHTML(FRIENDLY_TEXT[currentLanguage].qrTitle)}</h3><div id="order-qr-code" class="order-qr-code"></div><p>${escapeHTML(receipt().order.order_code)}</p><p>${escapeHTML(FRIENDLY_TEXT[currentLanguage].qrHelp)}</p></section></div>`;
         };
 
         const copyTicketSummary = async () => {
@@ -1265,32 +961,7 @@
             }
         };
 
-        const buildOrderQrPayload = (formData) => {
-            const compact=(value,max=100)=>String(value||'').replace(/[\r\n]+/g,' ').replace(/\s+/g,' ').trim().slice(0,max);
-            const quantity=parseInt(formData.quantity)||1;
-            const mainPackage=formData.package||'A';
-            const different=document.getElementById('diff_packages_check')?.checked&&quantity>1;
-            const sets=different?[mainPackage,...[...document.querySelectorAll('.additional-pkg-select')].map(s=>s.value)].join('+'):`${mainPackage}x${quantity}`;
-            const method=formData.method==='pickup'?'PICKUP':'DELIVERY';
-            const location=formData.method==='pickup'?'Vearuny Kitchen':[formData.district,formData.address].filter(Boolean).join(', ');
-            const time=formData.method==='pickup'?formData.pickup_time:formData.time_slot;
-            const addons=getSelectedAddOns().join(',');
-            const total=document.getElementById('summary-total-cost')?.textContent||'';
-            return [
-                'VEARUNY ORDER',
-                `PLAN:${formData.plan_type==='monthly'?'MONTHLY':'WEEKLY'}`,
-                `SET:${sets}`,
-                `NAME:${compact(formData.customer_name,35)}`,
-                `PHONE:${compact(formData.phone,25)}`,
-                `METHOD:${method}`,
-                `LOCATION:${compact(location,70)}`,
-                `TIME:${compact(time,35)}`,
-                `START:${compact(formData.start_date,20)}`,
-                formData.remark?`NOTE:${compact(formData.remark,35)}`:'',
-                addons?`ADD:${compact(addons,50)}`:'',
-                `TOTAL:${compact(total,20)}`
-            ].filter(Boolean).join('\n');
-        };
+        const buildOrderQrPayload = () => receipt() ? `VEARUNY ORDER\n${receipt().order.order_code}\n${receipt().order.total_amount} ${receipt().order.currency}` : '';
 
         const renderOrderQrCode = (orderText) => {
             const container=document.getElementById('order-qr-code');
@@ -1360,31 +1031,37 @@
             }
         };
 
-        const handleFormSubmit = (event) => {
-            event.preventDefault();
-            const formId = 'meal-order-form';
-            const t = translations[currentLanguage];
-
-            if (!validateForm(formId)) return;
-
+        const displayReceipt = () => {
+            document.getElementById('ticket-card').innerHTML=generateTicketCardHTML();
+            document.getElementById('ticket-text-area').value=generateTicketPlainText();
+            setTicketSide(false);
+            document.getElementById('ticket-modal').classList.remove('hidden');
             generateQRCodes();
-
-            const formData = getFormData(formId);
-            const ticketCardHtml = generateTicketCardHTML(formData);
-            const modal = document.getElementById('ticket-modal');
-            const ticketCardDiv = document.getElementById('ticket-card');
-
-            if (modal && ticketCardDiv) {
-                ticketCardDiv.innerHTML = ticketCardHtml;
-                setTicketSide(false);
-                modal.classList.remove('hidden');
-                const qrTelegramUrl=`https://t.me/${ADMIN_USERNAME}?text=${encodeURIComponent(buildOrderQrPayload(formData))}`;
-                requestAnimationFrame(()=>renderOrderQrCode(qrTelegramUrl));
-                document.getElementById('send-status').textContent = '';
-                configureDownloadButtons();
-            } else {
-                showAlert(t.error_unknown);
-            }
+            requestAnimationFrame(()=>renderOrderQrCode(`https://t.me/${ADMIN_USERNAME}?text=${encodeURIComponent(buildOrderQrPayload())}`));
+            document.getElementById('send-status').textContent=receipt()?.replayed?(currentLanguage==='kh'?'បានទទួលកម្ម៉ង់ដដែលវិញ':'Existing order recovered; no duplicate created.'):'';
+            refreshCheckoutState();
+        };
+        const handleFormSubmit = async event => {
+            event.preventDefault();
+            if (!checkoutClient || checkoutClient.pending) return;
+            try {
+                let payload;
+                if (!checkoutClient.attempt || checkoutClient.attempt.rejected) {
+                    if (!validateForm('meal-order-form')) return;
+                    const form=getFormData('meal-order-form');
+                    const quantity=Number(form.quantity);
+                    if(!Number.isInteger(quantity)||quantity<1||quantity>100) throw new Error('Quantity must be 1–100');
+                    const sets=getOrderedPackages(quantity).map((code,index)=>({code,addons:[...(selectedAddons.get(index)||[])].sort((a,b)=>a-b)}));
+                    payload=CheckoutAPI.buildPayload(catalog,form,sets,currentLanguage);
+                    if(checkoutClient.attempt?.rejected)checkoutClient.reset();
+                }
+                const work=checkoutClient.checkout(payload?.customer,payload?.order);
+                refreshCheckoutState(); showAlert(apiText().loading);
+                await work;
+                showAlert(apiText().created); displayReceipt();
+            } catch(error) {
+                showAlert(`${apiText().error} ${error.message}${checkoutClient.attempt && !checkoutClient.attempt.rejected ? ' '+apiText().recovery : ''}`);
+            } finally { refreshCheckoutState(); }
         };
 
         const openPolicyModal = () => {
@@ -1614,6 +1291,12 @@
                 toggleMethodFields();
                 updatePriceSummary();
                 updatePlanNotesVisibility();
+                try { checkoutClient=CheckoutAPI.createClient({storage:sessionStorage}); }
+                catch { showAlert(currentLanguage==='kh'?'មិនអាចអានកម្ម៉ង់ដែលរក្សាទុកបាន។ សូមទាក់ទងផ្ទះបាយ។':'Saved checkout storage is unavailable. Restore browser storage before ordering.'); }
+                document.getElementById('catalog-retry-btn').onclick=loadCatalog;
+                document.getElementById('new-order-btn').onclick=()=>{checkoutClient.reset();restoredAttempt=false;document.getElementById('ticket-modal').classList.add('hidden');refreshCheckoutState();updatePriceSummary();showAlert('');};
+                document.getElementById('receipt-open-btn').onclick=()=>{if(receipt())displayReceipt();};
+                if(checkoutClient) {loadCatalog();if(receipt())displayReceipt();}
 
                 ['package', 'quantity', 'start_date', 'time_slot', 'pickup_time', 'customer_name', 'phone', 'remark', 'address', 'commune', 'subscription_number'].forEach(id => {
                     const element = document.getElementById(id);

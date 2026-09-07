@@ -160,7 +160,7 @@
                             </div>
                             <div class="bg-white p-5 rounded-xl shadow-sm border border-gray-100 hover:shadow-md transition-all">
                                 <label for="quantity" class="block mb-3 font-semibold text-gray-800" data-lang-key="label_quantity">3. Quantity</label>
-                                <input type="number" id="quantity" name="quantity" min="1" value="1" class="w-full p-3 rounded-lg bg-gray-50 border-gray-200 form-input" oninput="handleQuantityChange()">
+                                <input type="number" id="quantity" max="100" name="quantity" min="1" value="1" class="w-full p-3 rounded-lg bg-gray-50 border-gray-200 form-input" oninput="handleQuantityChange()">
 
                                 <div id="multi-set-options" class="hidden mt-4 p-4 bg-gray-50 rounded-lg border border-gray-200 animate-slide-up">
                                     <label class="flex items-start gap-3 cursor-pointer select-none">
@@ -188,11 +188,11 @@
                             <div id="delivery-fields" class="space-y-4 bg-gray-50 p-4 rounded-lg border border-gray-100 animate-fade-in">
                                 <div class="grid grid-cols-1 gap-4">
                                     <div>
-                                        <label id="district-optional-label" for="district" class="block mb-2 font-semibold text-sm">District (Optional)</label>
+                                        <label id="district-optional-label" for="district" class="block mb-2 font-semibold text-sm">District *</label>
                                         <select id="district" name="district" class="w-full p-3 rounded-lg form-select"></select>
                                     </div>
-                                    <div class="hidden" aria-hidden="true">
-                                        <label for="commune" class="block mb-2 font-semibold text-sm" data-lang-key="label_commune">Commune (Optional)</label>
+                                    <div>
+                                        <label for="commune" class="block mb-2 font-semibold text-sm">Commune *</label>
                                         <select id="commune" name="commune" class="w-full p-3 rounded-lg form-select">
                                                 <option value="" data-lang-key="select_commune_placeholder">-- Select Commune --</option>
                                         </select>
@@ -236,6 +236,8 @@
                             <div class="border-t border-gray-100 pt-5">
                                 <label id="addon-title" class="block mb-3 font-semibold text-gray-800">8. Additional Add-ons (Optional)</label>
                                 <p id="addon-note" class="text-xs text-gray-500 mb-3">Chicken and seafood are charged only on the menu days containing them.</p>
+                                <label id="nutrition-notes-label" for="nutrition_notes" class="block font-semibold">Nutrition notes (optional)</label>
+                                <textarea id="nutrition_notes" name="nutrition_notes" maxlength="4000" class="w-full p-3 rounded-lg form-input mb-4"></textarea>
                                 <div id="addon-options" class="grid grid-cols-1 sm:grid-cols-2 gap-2"></div>
                             </div>
 
@@ -293,7 +295,11 @@
                             </div>
 
                             <div class="pt-8">
-                                <button type="submit" id="generate-ticket-btn" class="w-full action-button py-4 rounded-xl text-lg font-bold shadow-lg hover:shadow-xl hover:-translate-y-1 transition-all duration-300" data-lang-key="btn_generate_ticket">
+                                <p id="checkout-status" role="status" aria-live="polite" class="text-sm mb-3"></p>
+                                <button type="button" id="catalog-retry-btn" hidden class="p-3 underline">Retry catalog / ទាញយកម្ដងទៀត</button>
+                                <button type="button" id="receipt-open-btn" hidden class="p-3 underline">View receipt / មើលបង្កាន់ដៃ</button>
+                                <button type="button" id="new-order-btn" hidden class="p-3 underline">Start another order</button>
+                                <button type="submit" disabled id="generate-ticket-btn" class="w-full action-button py-4 rounded-xl text-lg font-bold shadow-lg hover:shadow-xl hover:-translate-y-1 transition-all duration-300">
                                     Generate Subscription Ticket
                                 </button>
                             </div>
@@ -327,8 +333,7 @@
             </div>
             <button id="view-policy-btn" type="button" class="w-full mt-3 text-sm underline" style="color: var(--brand-hint);" data-lang-key="btn_view_policy">View Policy</button>
             <p id="send-status" class="text-xs text-center mt-2" style="color: var(--brand-accent-2);"></p>
-             <div id="qrcode-usd" class="hidden"></div>
-             <div id="qrcode-khr" class="hidden"></div>
+
         </div>
     </div>
 
@@ -432,6 +437,7 @@
     </div>
 
 
+    <script src="js/api.js"></script>
     <script src="js/checkout.js"></script>
     <!-- Meta Pixel Code -->
 
