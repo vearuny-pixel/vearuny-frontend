@@ -144,7 +144,8 @@
     const friendlyDate=value => {
       const match=String(value ?? '').match(/^(\d{4})-(\d{2})-(\d{2})/); if(!match) return value;
       const [,year,month,day]=match; const khMonths=['មករា','កុម្ភៈ','មីនា','មេសា','ឧសភា','មិថុនា','កក្កដា','សីហា','កញ្ញា','តុលា','វិច្ឆិកា','ធ្នូ'];
-      return language==='kh' ? `${day} ${khMonths[Number(month)-1]} ${year}` : `${day} ${['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][Number(month)-1]} ${year}`;
+      const date=language==='kh' ? `${day} ${khMonths[Number(month)-1]} ${year}` : `${day} ${['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][Number(month)-1]} ${year}`;
+      const time=String(value).match(/T(\d{2}:\d{2})/); return time ? `${date}, ${time[1]}` : date;
     };
     return [[t.code,o.order_code],['Vearuny',receipt.plan.code],
       ...receipt.items.flatMap(i => [[`${i.package_code} × ${i.quantity}`,amount(i.base_amount)], ...(i.addons || []).map(a => [a.name,amount(a.total_amount)])]),
@@ -152,7 +153,7 @@
       [t.addons,amount(o.addon_total)],[t.delivery,amount(o.delivery_fee)],[t.total,amount(o.total_amount)],
       [t.name,receipt.customer.name],[t.phone,receipt.customer.phone],[t.method,o.fulfillment_method === 'pickup'?t.pickup:t.deliveryMethod],
       [t.address,o.fulfillment_method === 'pickup' ? 'Vearuny Kitchen' : [o.district,o.commune,o.address].filter(Boolean).join(', ')],
-      [t.time,o.fulfillment_time],[t.start,friendlyDate(o.start_date)],[t.subscriber,o.subscriber_type],[t.previous,o.previous_subscription_number],
+      [t.time,friendlyDate(o.fulfillment_time)],[t.start,friendlyDate(o.start_date)],[t.subscriber,o.subscriber_type],[t.previous,o.previous_subscription_number],
       [t.remarks,o.customer_remarks],[t.notes,o.nutrition_notes],[t.payment,o.payment_status]].filter(([,v]) => v != null && v !== '');
   }
   return {createClient, buildPayload, packageFor, receiptLines, labels, APIError, STORAGE_KEY, validateQuote};
