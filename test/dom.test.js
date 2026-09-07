@@ -61,13 +61,13 @@ test('DOM mixed sets, per-item add-ons, pending lock, double click, escaped auth
  assert.equal(p.get('ticket-modal').classList.contains('hidden'),false);assert.match(p.get('ticket-card').textContent,/95.68 USD/);assert.match(p.get('ticket-card').textContent,/VRN-DOM-777/);assert.equal(p.get('ticket-card').querySelector('[onerror]'),null);
  assert.equal(p.w.document.querySelectorAll('#qrcode-usd').length,1);assert.equal(p.get('qrcode-usd').dataset.qr,'https://link.payway.com.kh/Ji386167m');assert.match(p.get('order-qr-code').dataset.qr,/VRN-DOM-777/);
  p.w.eval("setLanguage('kh')");assert.match(p.get('ticket-card').textContent,/សរុប/);assert.match(p.get('ticket-card').textContent,/95.68 USD/);assert.equal(p.get('generate-ticket-btn').disabled,true);
- p.get('new-order-btn').click();assert.equal(p.get('generate-ticket-btn').disabled,false);assert.equal(p.get('customer_name').disabled,false);
+ p.get('new-order-btn').click();await new Promise(resolve=>setTimeout(resolve,350));assert.equal(p.get('generate-ticket-btn').disabled,false);assert.equal(p.get('customer_name').disabled,false);
  assert.deepEqual(p.errors,[]);
  }finally{p.dom.window.close()}
 });
 test('DOM network failure enables retry; reload preserves key and frozen order despite empty form',async()=>{
  const p=await page({failOrder:true});let saved,first;
- try{p.fill();p.submit();await tick();await tick();assert.equal(p.get('generate-ticket-btn').disabled,false);assert.equal(p.get('customer_name').disabled,true);saved=p.w.sessionStorage.getItem('vearuny.checkout.v1');first=p.calls.find(c=>c.url.endsWith('/orders'));assert.ok(first)}finally{p.dom.window.close()}
+ try{p.fill();await new Promise(resolve=>setTimeout(resolve,350));p.submit();await tick();await tick();assert.equal(p.get('generate-ticket-btn').disabled,false);assert.equal(p.get('customer_name').disabled,true);saved=p.w.sessionStorage.getItem('vearuny.checkout.v1');first=p.calls.find(c=>c.url.endsWith('/orders'));assert.ok(first)}finally{p.dom.window.close()}
  const q=await page({saved});try{
  assert.equal(q.get('customer_name').value,'DISPOSABLE DOM');q.submit();await tick();await tick();const retry=q.calls.find(c=>c.url.endsWith('/orders'));assert.equal(retry.options.body,first.options.body);assert.equal(retry.options.headers['Idempotency-Key'],first.options.headers['Idempotency-Key']);assert.equal(q.calls.some(c=>c.url.endsWith('/customers')),false);assert.match(q.get('ticket-card').textContent,/VRN-DOM-777/);
  }finally{q.dom.window.close()}

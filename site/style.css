@@ -232,12 +232,17 @@ p { /* Ensure paragraphs use body font */
 .modal {
     background-color: rgba(0, 0, 0, 0.7);
     z-index: 50;
+    overflow-x: hidden;
 }
 .modal-content {
      background-color: var(--brand-secondary-bg);
      color: var(--brand-text);
      max-height: 90vh;
      overflow-y: auto;
+     width: min(calc(100vw - 24px), 520px);
+     max-width: 520px;
+     box-sizing: border-box;
+     overflow-x: hidden;
 }
 #ticket-text-area {
     white-space: pre-wrap;
@@ -445,9 +450,17 @@ p { /* Ensure paragraphs use body font */
 .quote-item > div:first-child { min-width: 0; display: flex; flex-direction: column; }
 .quote-item > div:first-child span { color: var(--brand-hint); font-size: .72rem; overflow-wrap: anywhere; }
 .quote-addon { grid-column: 1 / -1; display: flex; justify-content: space-between; gap: .5rem; color: var(--brand-hint); font-size: .73rem; overflow-wrap: anywhere; }
-.payment-qr-grid { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: .75rem; justify-items: center; align-items: start; margin-top: .75rem; }
-.payment-qr-grid > div { min-width: 0; width: 100%; text-align: center; }
-.payment-qr-grid canvas, .payment-qr-grid img { display: block; width: min(30vw,128px); height: auto; max-width: 100%; margin: .35rem auto 0; }
+.addon-options label { min-height: 2.75rem; align-items: flex-start; }
+.addon-copy { min-width: 0; flex: 1; display: flex; flex-direction: column; gap: .12rem; overflow-wrap: anywhere; line-height: 1.25; }
+.addon-copy span { color: var(--brand-hint); font-size: .72rem; }
+.addon-effective { flex: 0 0 auto; color: var(--brand-primary); white-space: nowrap; }
+.payment-qr-selector { display: inline-flex; margin: .8rem auto .45rem; padding: .2rem; gap: .2rem; border-radius: 999px; background: #f2efdf; }
+.qr-currency-btn { min-width: 3.25rem; min-height: 2.75rem; padding: .45rem .8rem; border: 0; border-radius: 999px; background: transparent; color: #606c38; font-weight: 800; cursor: pointer; }
+.qr-currency-btn.is-active { color: #fff; background: #606c38; }
+.payment-qr-display { min-height: min(75vw,280px); display: grid; place-items: center; overflow: hidden; }
+.payment-qr-display > div { min-width: 0; }
+.payment-qr-display canvas, .payment-qr-display img { display: block; width: min(75vw,280px); height: auto; max-width: 100%; margin: .35rem auto; }
+.payway-link { display: inline-block; min-height: 2.75rem; padding: .65rem .8rem; color: #283618; text-decoration: underline; font-weight: 700; }
 
 
 @keyframes spin {
@@ -749,6 +762,8 @@ p { /* Ensure paragraphs use body font */
     color: #283618;
     text-align: right;
     font-weight: 700;
+    min-width: 0;
+    overflow-wrap: anywhere;
 }
 #ticket-card .ticket-total {
     display: flex;
@@ -886,8 +901,7 @@ p { /* Ensure paragraphs use body font */
     #ticket-card .qr-ticket-brand, #ticket-card .order-qr-code { max-width: 100%; overflow: hidden; }
     #ticket-card .order-qr-code canvas, #ticket-card .order-qr-code img { display: block; width: min(62vw,230px) !important; height: auto !important; max-width: 100%; margin: 0 auto; }
     #ticket-card .qr-ticket-reference { overflow-wrap: anywhere; }
-    .payment-qr-grid { gap: .35rem; }
-    .payment-qr-grid canvas, .payment-qr-grid img { width: min(35vw,112px); }
+    .payment-qr-display { min-height: min(75vw,280px); }
     #ticket-card .boarding-main { padding: .65rem .7rem .8rem; }
     #ticket-card .ticket-header { padding-left: .5rem; padding-right: .5rem; }
 }

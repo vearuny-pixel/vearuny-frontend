@@ -141,7 +141,11 @@
     const currency = o.currency || 'USD';
     const amount = n => `${n} ${currency}`;
     const rules = {friday:language==='kh'?'ថ្ងៃសុក្រ':'Friday',new_subscriber:language==='kh'?'អតិថិជនថ្មី':'New subscriber',returning_subscriber:language==='kh'?'អតិថិជនចាស់':'Returning subscriber',none:'—'};
-    const friendlyDate=value => { if(!/^\d{4}-\d{2}-\d{2}$/.test(String(value))) return value; const [year,month,day]=String(value).split('-'); return language==='kh' ? `${day}-${month}-${year}` : `${month}/${day}/${year}`; };
+    const friendlyDate=value => {
+      const match=String(value ?? '').match(/^(\d{4})-(\d{2})-(\d{2})/); if(!match) return value;
+      const [,year,month,day]=match; const khMonths=['មករា','កុម្ភៈ','មីនា','មេសា','ឧសភា','មិថុនា','កក្កដា','សីហា','កញ្ញា','តុលា','វិច្ឆិកា','ធ្នូ'];
+      return language==='kh' ? `${day} ${khMonths[Number(month)-1]} ${year}` : `${day} ${['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][Number(month)-1]} ${year}`;
+    };
     return [[t.code,o.order_code],['Vearuny',receipt.plan.code],
       ...receipt.items.flatMap(i => [[`${i.package_code} × ${i.quantity}`,amount(i.base_amount)], ...(i.addons || []).map(a => [a.name,amount(a.total_amount)])]),
       [t.base,amount(o.base_amount)],[t.discount,amount(o.discount_amount)],[t.rules,`${rules[o.discount_rule] || o.discount_rule} (${o.discount_percentage}%)`],

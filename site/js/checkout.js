@@ -91,10 +91,11 @@
                     const input = document.createElement('input'); input.type='checkbox'; input.className='addon-checkbox'; input.checked=selected.has(addon.id);
                     input.dataset.item=String(index); input.value=addon.id;
                     input.onchange=()=>{if(input.checked)selected.add(addon.id);else selected.delete(addon.id);updatePriceSummary();};
-                    const text = document.createElement('span');
+                    const text = document.createElement('span'); text.className='addon-copy';
                     // Display API rule operands only; the API computes all effective charges.
-                    text.textContent = `${ADD_ON_NAMES[addon.code][currentLanguage]} · $${rule.price_per_meal}/${currentLanguage==='kh'?'ពេល':'meal'} · ${rule.applicable_meal_count} ${currentLanguage==='kh'?'ពេលក្នុងឈុត':'applicable meals/set'}`;
-                    label.append(input,text); fieldset.append(label);
+                    text.innerHTML = `<strong>${escapeHTML(ADD_ON_NAMES[addon.code][currentLanguage])}</strong><span>${escapeHTML(`$${rule.price_per_meal}/${currentLanguage==='kh'?'ពេល':'meal'} × ${rule.applicable_meal_count} ${currentLanguage==='kh'?'ពេលក្នុងឈុត':'meals/set'}`)}</span>`;
+                    const effective=document.createElement('strong'); effective.className='addon-effective'; effective.dataset.item=String(index); effective.dataset.addon=String(addon.id); effective.textContent='+$0.00';
+                    label.append(input,text,effective); fieldset.append(label);
                 });
                 box.append(fieldset);
             });
@@ -106,7 +107,7 @@
                 button.style.borderColor = active ? 'var(--brand-primary)' : '#e5e7eb';
                 button.style.backgroundColor = active ? 'var(--brand-bg)' : '#fff';
                 button.style.color = active ? 'var(--brand-text)' : '#374151';
-                button.style.boxShadow = active ? '0 0 0 2px var(--brand-primary)' : 'none';
+                button.style.boxShadow = active ? '0 0 0 2px rgba(96,108,56,.2)' : 'none';
             });
         };
 
@@ -701,23 +702,34 @@
         let quoteTimer = null;
         let quoteSequence = 0;
         let latestQuote = null;
+        let quoteLoading = false;
+        let quoteError = false;
+        const money = value => `$${Number(value || 0).toFixed(2)}`;
         const setQuoteLoading = loading => {
+            quoteLoading=loading;
             const state=document.getElementById('quote-state');
             if(state) { state.textContent=loading ? (currentLanguage==='kh'?'កំពុងគណនា…':'Updating total…') : ''; state.classList.toggle('is-loading',loading); }
+            refreshCheckoutState();
         };
         const renderQuote = quote => {
             latestQuote=quote;
-            const money=value=>`$${Number(value).toFixed(2)}`;
+            quoteError=false;
             document.getElementById('summary-package-cost').textContent=money(quote.base_amount);
             document.getElementById('summary-addon-cost').textContent=money(quote.addon_total);
             document.getElementById('summary-delivery-cost').textContent=money(quote.delivery_fee);
             document.getElementById('summary-total-cost').textContent=money(quote.total_amount);
-            document.getElementById('summary-discount').textContent=`-${money(quote.discount_amount)} (${quote.discount_percentage}%)`;
-            document.getElementById('discount-row').style.display=Number(quote.discount_amount)>0?'flex':'none';
-            document.getElementById('addon-cost-row').style.display=Number(quote.addon_total)>0?'flex':'none';
+            document.getElementById('summary-discount').textContent=`${money(quote.discount_amount)}${Number(quote.discount_percentage)>0 ? ` (${quote.discount_percentage}%)` : ''}`;
+            document.getElementById('discount-row').style.display='flex';
+            document.getElementById('addon-cost-row').style.display='flex';
             document.getElementById('delivery-cost-row').style.display='flex';
+            document.getElementById('quote-retry-btn').hidden=true;
             const breakdown=document.getElementById('summary-breakdown');
-            if(breakdown) breakdown.innerHTML=quote.items.map(item=>`<div class="quote-item"><div><strong>${escapeHTML(item.package_code)} × ${item.quantity}</strong><span>${escapeHTML(item.package_name || '')}</span></div><strong>${money(item.base_amount)}</strong>${item.addons.map(addon=>`<div class="quote-addon"><span>＋ ${escapeHTML(addon.name)} × ${addon.billable_meal_count}</span><span>${money(addon.total_amount)}</span></div>`).join('')}</div>`).join('');
+            if(breakdown) breakdown.innerHTML=quote.items.map((item,itemIndex)=>`<div class="quote-item"><div><strong>${escapeHTML(item.package_code)} × ${item.quantity}</strong><span>${escapeHTML(item.package_name || '')}</span></div><strong>${money(item.base_amount)}</strong>${item.addons.map(addon=>`<div class="quote-addon"><span>＋ ${escapeHTML(addon.name)} × ${addon.billable_meal_count}</span><span>${money(addon.total_amount)}</span></div>`).join('')}</div>`).join('');
+            quote.items.forEach((item,itemIndex)=>item.addons.forEach(addon=>{
+                const effective=document.querySelector(`.addon-effective[data-item="${itemIndex}"][data-addon="${addon.id}"]`);
+                if(effective) effective.textContent=`+${money(addon.total_amount)}`;
+            }));
+            refreshCheckoutState();
         };
         const requestQuote = () => {
             if(!checkoutClient || !catalog || checkoutClient.attempt?.receipt) return;
@@ -733,7 +745,13 @@
                     const quote=await checkoutClient.quote(payload.order);
                     if(sequence===quoteSequence) renderQuote(quote);
                 } catch(error) {
-                    if(sequence===quoteSequence) { latestQuote=null; document.getElementById('summary-total-cost').textContent='—'; showAlert(`${apiText().error} ${error.message}`); }
+                    if(sequence===quoteSequence) {
+                        latestQuote=null; quoteError=true;
+                        document.getElementById('summary-total-cost').textContent='$0.00';
+                        document.getElementById('quote-state').textContent=currentLanguage==='kh'?'មិនអាចគណនា។ សូមព្យាយាមម្ដងទៀត។':'Unable to calculate total. Please retry.';
+                        document.getElementById('quote-retry-btn').hidden=false;
+                        refreshCheckoutState();
+                    }
                 } finally { if(sequence===quoteSequence) setQuoteLoading(false); }
             },250);
         };
@@ -744,13 +762,17 @@
             if (catalog && Number.isInteger(quantity) && quantity>0 && quantity<=100) {
                 try { base = getOrderedPackages(quantity).reduce((sum,code)=>sum+Math.round(Number(CheckoutAPI.packageFor(catalog,plan,code).price)*100),0)/100; } catch {}
             }
-            document.getElementById('summary-package-cost').textContent = base===null?'—':`$${base.toFixed(2)}`;
+            document.getElementById('summary-package-cost').textContent = base===null?'$0.00':`$${base.toFixed(2)}`;
             latestQuote=null;
-            document.getElementById('summary-total-cost').textContent = '—';
+            quoteError=false;
+            document.getElementById('summary-total-cost').textContent = '$0.00';
             document.getElementById('total-meal-info').textContent = apiText().pending;
-            for (const id of ['discount-row','delivery-cost-row','delivery-fee-note','promo-status']) document.getElementById(id).style.display='none';
+            for (const id of ['delivery-fee-note','promo-status']) document.getElementById(id).style.display='none';
             document.getElementById('addon-cost-row').style.display='flex';
-            document.getElementById('summary-addon-cost').textContent='—';
+            document.getElementById('summary-addon-cost').textContent='$0.00';
+            document.getElementById('summary-delivery-cost').textContent='$0.00';
+            document.getElementById('summary-discount').textContent='$0.00';
+            document.getElementById('discount-row').style.display='flex';
             const delivery = document.querySelector('input[name="method"]:checked')?.value==='delivery';
             for (const id of ['district','commune','address']) document.getElementById(id).required=delivery;
             document.querySelector('label[for="commune"]').textContent=currentLanguage==='kh'?'សង្កាត់ *':'Commune *';
@@ -769,7 +791,7 @@
                 else if(el.dataset.checkoutLocked) {el.disabled=false; delete el.dataset.checkoutLocked;}
             });
             const button = document.getElementById('generate-ticket-btn');
-            button.disabled=!checkoutClient || checkoutClient.pending || (!catalog && !attempt) || Boolean(attempt?.receipt);
+            button.disabled=!checkoutClient || checkoutClient.pending || quoteLoading || quoteError || !latestQuote || (!catalog && !attempt) || Boolean(attempt?.receipt);
             button.textContent=checkoutClient?.pending?apiText().loading:attempt&&!attempt.rejected?apiText().retry:apiText().create;
             button.setAttribute('aria-busy',String(Boolean(checkoutClient?.pending)));
             const reset = document.getElementById('new-order-btn');
@@ -947,7 +969,16 @@
         const generateTicketCardHTML = () => {
             const lines = CheckoutAPI.receiptLines(receipt(),currentLanguage);
             if (!lines.length) return '';
-            return `<div class="ticket-flipper"><section class="ticket-face ticket-front"><div class="boarding-pass-layout"><div class="boarding-main"><img src="graylogo.png" alt="Vearuny" class="h-16 mx-auto"><div class="ticket-section-title">${escapeHTML(apiText().created)}</div>${lines.map(([k,v])=>`<div class="ticket-item"><span>${escapeHTML(k)}</span><strong>${escapeHTML(v)}</strong></div>`).join('')}<div class="mt-4 text-center">${escapeHTML(translations[currentLanguage].payment_instructions || (currentLanguage==='kh'?'សូមទូទាត់តាម PayWay':'Pay using the existing PayWay links'))}<div class="payment-qr-grid"><div><a href="${PAYWAY_USD_LINK}" target="_blank" rel="noopener">PayWay USD</a><div id="qrcode-usd"></div></div><div><a href="${PAYWAY_KHR_LINK}" target="_blank" rel="noopener">PayWay KHR</a><div id="qrcode-khr"></div></div></div></div></div></div></section><section class="ticket-face ticket-back"><div class="qr-ticket-brand"><img class="qr-ticket-logo" src="graylogo.png" alt="Vearuny"></div><h3>${escapeHTML(FRIENDLY_TEXT[currentLanguage].qrTitle)}</h3><div id="order-qr-code" class="order-qr-code"></div><p>${escapeHTML(receipt().order.order_code)}</p><p>${escapeHTML(FRIENDLY_TEXT[currentLanguage].qrHelp)}</p></section></div>`;
+            return `<div class="ticket-flipper"><section class="ticket-face ticket-front"><div class="boarding-pass-layout"><div class="boarding-main"><img src="graylogo.png" alt="Vearuny" class="h-16 mx-auto"><div class="ticket-section-title">${escapeHTML(apiText().created)}</div>${lines.map(([k,v])=>`<div class="ticket-item"><span>${escapeHTML(k)}</span><strong>${escapeHTML(v)}</strong></div>`).join('')}<div class="mt-4 text-center">${escapeHTML(translations[currentLanguage].payment_instructions || (currentLanguage==='kh'?'សូមទូទាត់តាម PayWay':'Pay using the existing PayWay links'))}<div class="payment-qr-selector" role="tablist" aria-label="PayWay currency"><button type="button" class="qr-currency-btn is-active" data-currency="usd" role="tab">USD</button><button type="button" class="qr-currency-btn" data-currency="khr" role="tab">KHR</button></div><div class="payment-qr-display"><div id="qrcode-usd"></div><div id="qrcode-khr" hidden></div></div><a id="payway-link" class="payway-link" href="${PAYWAY_USD_LINK}" target="_blank" rel="noopener">${currentLanguage==='kh'?'បើក PayWay USD':'Open PayWay USD'}</a></div></div></div></section><section class="ticket-face ticket-back"><div class="qr-ticket-brand"><img class="qr-ticket-logo" src="graylogo.png" alt="Vearuny"></div><h3>${escapeHTML(FRIENDLY_TEXT[currentLanguage].qrTitle)}</h3><div id="order-qr-code" class="order-qr-code"></div><p>${escapeHTML(receipt().order.order_code)}</p><p>${escapeHTML(FRIENDLY_TEXT[currentLanguage].qrHelp)}</p></section></div>`;
+        };
+
+        const setPaymentQr = currency => {
+            const usd=document.getElementById('qrcode-usd'), khr=document.getElementById('qrcode-khr'), link=document.getElementById('payway-link');
+            if(!usd||!khr||!link)return;
+            const isUsd=currency!=='khr'; usd.hidden=!isUsd; khr.hidden=isUsd;
+            document.querySelectorAll('.qr-currency-btn').forEach(button=>{const active=(button.dataset.currency===(isUsd?'usd':'khr'));button.classList.toggle('is-active',active);button.setAttribute('aria-selected',String(active));});
+            link.href=isUsd?PAYWAY_USD_LINK:PAYWAY_KHR_LINK;
+            link.textContent=currentLanguage==='kh'?(isUsd?'បើក PayWay USD':'បើក PayWay KHR'):(isUsd?'Open PayWay USD':'Open PayWay KHR');
         };
 
         const copyTicketSummary = async () => {
@@ -1025,10 +1056,12 @@
             const copy=document.getElementById('copy-ticket-btn');
             const download=document.getElementById('download-qr-ticket-btn');
             const close=document.getElementById('close-ticket-modal-btn');
+            const receiptButton=document.getElementById('receipt-open-btn');
             if(hint) hint.textContent=flipped?(isKh?'អូសស្តាំដើម្បីមើលព័ត៌មាន':'Swipe right for details'):(isKh?'អូសឆ្វេងដើម្បីមើល QR':'Swipe left for QR');
             if(copy){copy.setAttribute('aria-label',isKh?'ចម្លងព័ត៌មានការកុម្ម៉ង់':'Copy order information');copy.title=copy.getAttribute('aria-label');}
             if(download){download.setAttribute('aria-label',isKh?'ទាញយកសំបុត្រ QR':'Download QR ticket');download.title=download.getAttribute('aria-label');}
             if(close){close.setAttribute('aria-label',isKh?'បិទ':'Close');close.title=close.getAttribute('aria-label');}
+            if(receiptButton) receiptButton.textContent=isKh?'មើលបង្កាន់ដៃ':'View receipt';
         };
 
         const setTicketSide = (showQr) => {
@@ -1077,6 +1110,8 @@
             document.getElementById('ticket-text-area').value=generateTicketPlainText();
             setTicketSide(false);
             document.getElementById('ticket-modal').classList.remove('hidden');
+            document.querySelectorAll('.qr-currency-btn').forEach(button=>button.onclick=()=>setPaymentQr(button.dataset.currency));
+            setPaymentQr('usd');
             generateQRCodes();
             requestAnimationFrame(()=>renderOrderQrCode(`https://t.me/${ADMIN_USERNAME}?text=${encodeURIComponent(buildOrderQrPayload())}`));
             document.getElementById('send-status').textContent=receipt()?.replayed?(currentLanguage==='kh'?'បានទទួលកម្ម៉ង់ដដែលវិញ':'Existing order recovered; no duplicate created.'):'';
@@ -1409,6 +1444,8 @@
 
                 const viewPolicyBtn = document.getElementById('view-policy-btn');
                 if(viewPolicyBtn) viewPolicyBtn.addEventListener('click', openPolicyModal);
+                const quoteRetryBtn = document.getElementById('quote-retry-btn');
+                if(quoteRetryBtn) quoteRetryBtn.addEventListener('click', () => { quoteError=false; quoteRetryBtn.hidden=true; requestQuote(); });
 
                 const orderForm = document.getElementById('meal-order-form');
                 if (orderForm) {
