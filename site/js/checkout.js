@@ -94,7 +94,7 @@
                     const text = document.createElement('span'); text.className='addon-copy';
                     // Display API rule operands only; the API computes all effective charges.
                     text.innerHTML = `<strong>${escapeHTML(ADD_ON_NAMES[addon.code][currentLanguage])}</strong><span>${escapeHTML(`$${rule.price_per_meal}/${currentLanguage==='kh'?'ពេល':'meal'} × ${rule.applicable_meal_count} ${currentLanguage==='kh'?'ពេលក្នុងឈុត':'meals/set'}`)}</span>`;
-                    const effective=document.createElement('strong'); effective.className='addon-effective'; effective.dataset.item=String(index); effective.dataset.addon=String(addon.id); effective.textContent='+$0.00';
+                    const effective=document.createElement('strong'); effective.className='addon-effective'; effective.dataset.item=String(index); effective.dataset.addon=String(addon.id); effective.textContent='…';
                     label.append(input,text,effective); fieldset.append(label);
                 });
                 box.append(fieldset);
@@ -266,6 +266,8 @@
             document.getElementById('ticket-instructions').textContent=ft.ticketInstructions;
             document.getElementById('district-optional-label').textContent=ft.districtOptional;
             document.getElementById('summary-addon-label').textContent=currentLanguage==='kh'?'បន្ថែមមុខម្ហូប':'Add-ons';
+            const quoteRetryBtn=document.getElementById('quote-retry-btn');
+            if(quoteRetryBtn) quoteRetryBtn.textContent=currentLanguage==='kh'?'ព្យាយាមម្ដងទៀត':'Try again';
             updateTicketControlLanguage();
             refreshPackageButtonPrices();
 
@@ -427,6 +429,13 @@
 
         // --- UTILITY FUNCTIONS ---
         const showAlert = message => { const status=document.getElementById('checkout-status'); status.textContent=message; status.scrollIntoView({block:'nearest'}); };
+        const customerError = error => {
+            const status=Number(error?.status || 0);
+            if (status===400 || status===422) return currentLanguage==='kh'?'សូមពិនិត្យព័ត៌មានកម្ម៉ង់របស់អ្នក។':'Please check your order details.';
+            if (status===409) return currentLanguage==='kh'?'កម្ម៉ង់នេះកំពុងដំណើរការ។ សូមព្យាយាមម្ដងទៀត។':'This order is already being processed. Please try again.';
+            if (status===429) return currentLanguage==='kh'?'សូមរង់ចាំបន្តិច ហើយព្យាយាមម្ដងទៀត។':'Please wait a moment and try again.';
+            return currentLanguage==='kh'?'មិនអាចភ្ជាប់បាន។ សូមព្យាយាមម្ដងទៀត។':'We could not connect. Please try again.';
+        };
 
         const formatDate = (dateString) => {
             if (!dateString) return '';
@@ -708,7 +717,7 @@
         const setQuoteLoading = loading => {
             quoteLoading=loading;
             const state=document.getElementById('quote-state');
-            if(state) { state.textContent=loading ? (currentLanguage==='kh'?'កំពុងគណនា…':'Updating total…') : ''; state.classList.toggle('is-loading',loading); }
+            if(state) { state.textContent=loading ? (currentLanguage==='kh'?'កំពុងគណនាតម្លៃ…':'Calculating…') : ''; state.classList.toggle('is-loading',loading); }
             refreshCheckoutState();
         };
         const renderQuote = quote => {
@@ -748,7 +757,8 @@
                     if(sequence===quoteSequence) {
                         latestQuote=null; quoteError=true;
                         document.getElementById('summary-total-cost').textContent='$0.00';
-                        document.getElementById('quote-state').textContent=currentLanguage==='kh'?'មិនអាចគណនា។ សូមព្យាយាមម្ដងទៀត។':'Unable to calculate total. Please retry.';
+                        document.getElementById('quote-state').textContent=currentLanguage==='kh'?'មិនអាចគណនាតម្លៃបាន សូមព្យាយាមម្ដងទៀត':'Unable to calculate the price. Please try again.';
+                        document.getElementById('quote-retry-btn').textContent=currentLanguage==='kh'?'ព្យាយាមម្ដងទៀត':'Try again';
                         document.getElementById('quote-retry-btn').hidden=false;
                         refreshCheckoutState();
                     }
@@ -766,7 +776,7 @@
             latestQuote=null;
             quoteError=false;
             document.getElementById('summary-total-cost').textContent = '$0.00';
-            document.getElementById('total-meal-info').textContent = apiText().pending;
+            document.getElementById('total-meal-info').textContent = currentLanguage==='kh'?'តម្លៃសរុបរបស់អ្នក':'Order Summary';
             for (const id of ['delivery-fee-note','promo-status']) document.getElementById(id).style.display='none';
             document.getElementById('addon-cost-row').style.display='flex';
             document.getElementById('summary-addon-cost').textContent='$0.00';
@@ -839,7 +849,7 @@
                 document.getElementById('catalog-retry-btn').hidden=true;
                 showAlert(checkoutClient.attempt?apiText().recovery:'');
                 refreshPackageButtonPrices(); updatePriceSummary();
-            } catch(error) { showAlert(`${apiText().error} ${error.message}`); document.getElementById('catalog-retry-btn').hidden=false; }
+            } catch(error) { showAlert(customerError(error)); document.getElementById('catalog-retry-btn').hidden=false; }
             finally { catalogLoading=false; refreshCheckoutState(); }
         };
 
@@ -1136,7 +1146,7 @@
                 await work;
                 showAlert(apiText().created); displayReceipt();
             } catch(error) {
-                showAlert(`${apiText().error} ${error.message}${checkoutClient.attempt && !checkoutClient.attempt.rejected ? ' '+apiText().recovery : ''}`);
+                showAlert(`${customerError(error)}${checkoutClient.attempt && !checkoutClient.attempt.rejected ? ' '+apiText().recovery : ''}`);
             } finally { refreshCheckoutState(); }
         };
 
