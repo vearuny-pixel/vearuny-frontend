@@ -7,6 +7,8 @@
   'use strict';
   const BASE = 'https://api.vearuny.com';
   const STORAGE_KEY = 'vearuny.checkout.v1';
+  const CATALOG_CACHE_KEY = 'vearuny.catalog.v1';
+  const CATALOG_CACHE_TTL = 5 * 60 * 1000;
   class APIError extends Error {
     constructor(message, status = 0) { super(message); this.status = status; }
   }
@@ -36,12 +38,23 @@
     return {
       get attempt() { return attempt; }, get pending() { return pending; }, request,
       async catalog() {
+        if (this._catalogCache && Date.now() - this._catalogCacheAt < CATALOG_CACHE_TTL) return this._catalogCache;
+        if (storage) {
+          try {
+            const savedCatalog = JSON.parse(storage.getItem(CATALOG_CACHE_KEY) || 'null');
+            if (savedCatalog && savedCatalog.savedAt && Date.now() - savedCatalog.savedAt < CATALOG_CACHE_TTL && savedCatalog.catalog) {
+              this._catalogCache = savedCatalog.catalog; this._catalogCacheAt = savedCatalog.savedAt; return savedCatalog.catalog;
+            }
+          } catch (_) { /* ignore stale or malformed catalog cache */ }
+        }
         const results = await Promise.all(['/api/plans','/api/packages','/api/addons'].map(p => request(p)));
         const catalog = {plans:results[0].data.plans, packages:results[1].data.packages, addons:results[2].data.addons};
         if (!Array.isArray(catalog.plans) || !Array.isArray(catalog.packages) || !Array.isArray(catalog.addons)) throw new APIError('Invalid catalog response');
         for (const code of ['X2-EGG','X2-MEAT','X2-CHICKEN','X2-SEAFOOD']) {
           if (!catalog.addons.some(a => a.code === code && Array.isArray(a.pricing_rules))) throw new APIError('Confirmed add-on catalog unavailable');
         }
+        this._catalogCache = catalog; this._catalogCacheAt = Date.now();
+        if (storage) { try { storage.setItem(CATALOG_CACHE_KEY, JSON.stringify({savedAt:this._catalogCacheAt,catalog})); } catch (_) {} }
         return catalog;
       },
       async quote(order) {

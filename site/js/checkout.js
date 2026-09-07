@@ -19,6 +19,7 @@
         let catalog = null;
         let checkoutClient = null;
         let catalogLoading = false;
+        const menuImageCache = new Map();
         const apiText = () => CheckoutAPI.labels[currentLanguage];
         const receipt = () => checkoutClient?.attempt?.receipt;
         const escapeHTML = value => String(value ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -660,6 +661,8 @@
             const t = translations[currentLanguage];
 
             if (!loader || !imgEl || !errEl) return;
+            imgEl.loading = 'lazy';
+            imgEl.decoding = 'async';
 
             loader.style.display = 'flex';
             loader.textContent = t.menu_loading;
@@ -672,12 +675,17 @@
             const imageName = currentLanguage === 'kh' ? pkg.toLowerCase() : pkg.toUpperCase();
             const imageUrl = `assets/menus/${imageName}.jpg`;
 
+            const cached = menuImageCache.get(imageUrl);
+            if (cached) { imgEl.src = cached; loader.style.display = 'none'; imgEl.style.display = 'block'; return; }
             const img = new Image();
+            img.decoding = 'async';
+            img.loading = 'lazy';
             img.src = imageUrl;
             img.alt = `Menu for Package ${pkg}`;
 
             img.onload = () => {
                 imgEl.src = imageUrl;
+                menuImageCache.set(imageUrl, imageUrl);
                 loader.style.display = 'none';
                 imgEl.style.display = 'block';
                 errEl.style.display = 'none';
@@ -691,6 +699,7 @@
 
                 fallbackImg.onload = () => {
                     imgEl.src = fallbackUrl;
+                    menuImageCache.set(imageUrl, fallbackUrl);
                     loader.style.display = 'none';
                     imgEl.style.display = 'block';
                     errEl.style.display = 'none';
@@ -806,7 +815,11 @@
             button.setAttribute('aria-busy',String(Boolean(checkoutClient?.pending)));
             const reset = document.getElementById('new-order-btn');
             document.getElementById('receipt-open-btn').hidden=!attempt?.receipt;
-            reset.hidden=!(attempt?.receipt || attempt?.rejected); reset.textContent=apiText().newOrder;
+            reset.hidden=!(attempt?.receipt || attempt?.rejected); const resetLabel=reset.querySelector('span'); if(resetLabel) resetLabel.textContent=apiText().newOrder; else reset.textContent=apiText().newOrder;
+            const actions=document.getElementById('post-order-actions');
+            if(actions) actions.hidden=!(attempt?.receipt || attempt?.rejected);
+            const view=document.getElementById('receipt-open-btn');
+            if(view) { const viewLabel=view.querySelector('span'); if(viewLabel) viewLabel.textContent=currentLanguage==='kh'?'មើលបង្កាន់ដៃ':'View Ticket'; else view.textContent=currentLanguage==='kh'?'មើលបង្កាន់ដៃ':'View Ticket'; }
             document.getElementById('ticket-instructions').textContent=apiText().created;
         };
         let restoredAttempt = false;
@@ -945,8 +958,8 @@
             try {
                  new QRCode(qrUsdContainer, {
                      text: PAYWAY_USD_LINK,
-                     width: 128,
-                     height: 128,
+                     width: 384,
+                     height: 384,
                      colorDark : "#000000",
                      colorLight : "#ffffff",
                      correctLevel : QRCode.CorrectLevel.H
@@ -956,8 +969,8 @@
              try {
                  new QRCode(qrKhrContainer, {
                      text: PAYWAY_KHR_LINK,
-                     width: 128,
-                     height: 128,
+                     width: 384,
+                     height: 384,
                      colorDark : "#000000",
                      colorLight : "#ffffff",
                      correctLevel : QRCode.CorrectLevel.H
@@ -977,9 +990,21 @@
         // Keep the Telegram payload compact. Long t.me URLs are unreliable on some mobile browsers.
         const generateTicketPlainText = () => CheckoutAPI.receiptLines(receipt(), currentLanguage).map(([key,value])=>`${key}: ${value}`).join('\n');
         const generateTicketCardHTML = () => {
-            const lines = CheckoutAPI.receiptLines(receipt(),currentLanguage);
-            if (!lines.length) return '';
-            return `<div class="ticket-flipper"><section class="ticket-face ticket-front"><div class="boarding-pass-layout"><div class="boarding-main"><img src="graylogo.png" alt="Vearuny" class="h-16 mx-auto"><div class="ticket-section-title">${escapeHTML(apiText().created)}</div>${lines.map(([k,v])=>`<div class="ticket-item"><span>${escapeHTML(k)}</span><strong>${escapeHTML(v)}</strong></div>`).join('')}<div class="mt-4 text-center">${escapeHTML(translations[currentLanguage].payment_instructions || (currentLanguage==='kh'?'សូមទូទាត់តាម PayWay':'Pay using the existing PayWay links'))}<div class="payment-qr-selector" role="tablist" aria-label="PayWay currency"><button type="button" class="qr-currency-btn is-active" data-currency="usd" role="tab">USD</button><button type="button" class="qr-currency-btn" data-currency="khr" role="tab">KHR</button></div><div class="payment-qr-display"><div id="qrcode-usd"></div><div id="qrcode-khr" hidden></div></div><a id="payway-link" class="payway-link" href="${PAYWAY_USD_LINK}" target="_blank" rel="noopener">${currentLanguage==='kh'?'បើក PayWay USD':'Open PayWay USD'}</a></div></div></div></section><section class="ticket-face ticket-back"><div class="qr-ticket-brand"><img class="qr-ticket-logo" src="graylogo.png" alt="Vearuny"></div><h3>${escapeHTML(FRIENDLY_TEXT[currentLanguage].qrTitle)}</h3><div id="order-qr-code" class="order-qr-code"></div><p>${escapeHTML(receipt().order.order_code)}</p><p>${escapeHTML(FRIENDLY_TEXT[currentLanguage].qrHelp)}</p></section></div>`;
+            const saved = receipt(); if (!saved?.order) return '';
+            const o=saved.order, kh=currentLanguage==='kh';
+            const date=value=>{const m=String(value??'').match(/^(\d{4})-(\d{2})-(\d{2})/);if(!m)return value||'';const months=kh?['មករា','កុម្ភៈ','មីនា','មេសា','ឧសភា','មិថុនា','កក្កដា','សីហា','កញ្ញា','តុលា','វិច្ឆិកា','ធ្នូ']:['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];return `${m[3]} ${months[Number(m[2])-1]} ${m[1]}`;};
+            const method=o.fulfillment_method==='pickup'?(kh?'មកយក':'Pickup'):(kh?'ដឹកជញ្ជូន':'Delivery');
+            const packageLines=saved.items.map(i=>`<div class="ticket-item"><span>${escapeHTML(i.package_code)} × ${i.quantity}</span><strong>${escapeHTML(i.package_name||'')}</strong></div>`).join('');
+            const addonSummary=saved.items.flatMap(i=>i.addons||[]).map(a=>`${a.name} × ${a.quantity||1}`).join(', ');
+            const details=[
+                [kh?'អាសយដ្ឋាន':'Address',o.fulfillment_method==='pickup'?(kh?'ផ្ទះបាយវារុណី':'Vearuny Kitchen'):[o.district,o.commune,o.address].filter(Boolean).join(', ')],
+                [kh?'ប្រភេទអតិថិជន':'Subscriber',o.subscriber_type],
+                [kh?'លេខជាវពីមុន':'Previous subscription',o.previous_subscription_number],
+                [kh?'ចំណាំ':'Remarks',o.customer_remarks],
+                [kh?'ចំណាំអាហារូបត្ថម្ភ':'Nutrition notes',o.nutrition_notes]
+            ].filter(([,v])=>v);
+            const more=kh?'ព័ត៌មានបន្ថែម':'More details';
+            return `<div class="ticket-flipper"><section class="ticket-face ticket-front"><div class="boarding-pass-layout"><div class="boarding-main receipt-polished"><header class="receipt-header"><img src="graylogo.png" alt="Vearuny" class="receipt-logo"><span class="receipt-status">${kh?'មិនទាន់បង់ប្រាក់':'Pending payment'}</span><h3>${escapeHTML(o.order_code)}</h3></header><section><div class="ticket-section-title">${kh?'ព័ត៌មានកម្ម៉ង់':'Order details'}</div>${packageLines}<div class="ticket-item"><span>${kh?'ថ្ងៃចាប់ផ្តើម':'Start date'}</span><strong>${escapeHTML(date(o.start_date))}</strong></div><div class="ticket-item"><span>${escapeHTML(apiText().method)}</span><strong>${escapeHTML(method)}</strong></div><div class="ticket-item"><span>${escapeHTML(apiText().time)}</span><strong>${escapeHTML(date(o.fulfillment_time))}</strong></div><div class="ticket-item"><span>${escapeHTML(apiText().name)}</span><strong>${escapeHTML(saved.customer?.name||'')}</strong></div></section><section><div class="ticket-section-title">${kh?'សរុបតម្លៃ':'Price summary'}</div><div class="ticket-item"><span>${kh?'តម្លៃឈុត':'Packages'}</span><strong>${money(o.base_amount)} ${o.currency||'USD'}</strong></div><div class="ticket-item"><span>${escapeHTML(apiText().addons)}</span><strong>${money(o.addon_total)} ${o.currency||'USD'}</strong></div><div class="ticket-item"><span>${escapeHTML(apiText().discount)}</span><strong>−${money(o.discount_amount)} ${o.currency||'USD'}</strong></div><div class="ticket-item"><span>${escapeHTML(apiText().delivery)}</span><strong>${money(o.delivery_fee)} ${o.currency||'USD'}</strong></div><div class="ticket-total"><span>${escapeHTML(apiText().total)}</span><strong>${money(o.total_amount)} ${o.currency||'USD'}</strong></div></section>${addonSummary?`<p class="receipt-addon-summary">${escapeHTML(addonSummary)}</p>`:''}<details class="receipt-more"><summary>${more}</summary>${details.map(([k,v])=>`<div class="ticket-item"><span>${escapeHTML(k)}</span><strong>${escapeHTML(v)}</strong></div>`).join('')}</details><section class="receipt-payment"><h4>${kh?'ការទូទាត់':'Payment'}</h4><p>${escapeHTML(translations[currentLanguage].payment_instructions || (kh?'សូមទូទាត់តាម PayWay':'Please pay using PayWay'))}</p><div class="payment-qr-selector" role="tablist" aria-label="PayWay currency"><button type="button" class="qr-currency-btn is-active" data-currency="usd" role="tab">USD</button><button type="button" class="qr-currency-btn" data-currency="khr" role="tab">KHR</button></div><div class="payment-qr-display"><div id="qrcode-usd"></div><div id="qrcode-khr" hidden></div></div><a id="payway-link" class="payway-link" href="${PAYWAY_USD_LINK}" target="_blank" rel="noopener">${kh?'បើក PayWay USD':'Open PayWay USD'}</a></section></div></div></section><section class="ticket-face ticket-back"><div class="qr-ticket-brand"><img class="qr-ticket-logo" src="graylogo.png" alt="Vearuny"></div><h3>${escapeHTML(FRIENDLY_TEXT[currentLanguage].qrTitle)}</h3><div id="order-qr-code" class="order-qr-code"></div><p>${escapeHTML(o.order_code)}</p><p>${escapeHTML(FRIENDLY_TEXT[currentLanguage].qrHelp)}</p></section></div>`;
         };
 
         const setPaymentQr = currency => {
@@ -1380,7 +1405,7 @@
                 try { checkoutClient=CheckoutAPI.createClient({storage:sessionStorage}); }
                 catch { showAlert(currentLanguage==='kh'?'មិនអាចអានកម្ម៉ង់ដែលរក្សាទុកបាន។ សូមទាក់ទងផ្ទះបាយ។':'Saved checkout storage is unavailable. Restore browser storage before ordering.'); }
                 document.getElementById('catalog-retry-btn').onclick=loadCatalog;
-                document.getElementById('new-order-btn').onclick=()=>{checkoutClient.reset();restoredAttempt=false;document.getElementById('ticket-modal').classList.add('hidden');refreshCheckoutState();updatePriceSummary();showAlert('');};
+                document.getElementById('new-order-btn').onclick=()=>{checkoutClient.reset();restoredAttempt=false;document.getElementById('ticket-modal').classList.add('hidden');refreshCheckoutState();updatePriceSummary();showAlert('');window.scrollTo({top:0,behavior:'smooth'});};
                 document.getElementById('receipt-open-btn').onclick=()=>{if(receipt())displayReceipt();};
                 if(checkoutClient) {loadCatalog();if(receipt())displayReceipt();}
 

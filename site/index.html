@@ -300,8 +300,10 @@
                                 <p id="checkout-status" role="status" aria-live="polite" class="text-sm mb-3"></p>
                                 <button type="button" id="catalog-retry-btn" hidden class="p-3 underline">Retry catalog / ទាញយកម្ដងទៀត</button>
                                 <button type="button" id="quote-retry-btn" hidden class="p-3 underline">Try again / ព្យាយាមម្ដងទៀត</button>
-                                <button type="button" id="receipt-open-btn" hidden class="p-3 underline">View receipt</button>
-                                <button type="button" id="new-order-btn" hidden class="p-3 underline">Start another order</button>
+                                <div id="post-order-actions" class="post-order-actions" hidden>
+                                    <button type="button" id="receipt-open-btn" class="post-order-primary">▣ <span>View Ticket</span></button>
+                                    <button type="button" id="new-order-btn" class="post-order-secondary"><span>Start New Order</span></button>
+                                </div>
                                 <button type="submit" disabled id="generate-ticket-btn" class="w-full action-button py-4 rounded-xl text-lg font-bold shadow-lg hover:shadow-xl hover:-translate-y-1 transition-all duration-300">
                                     Generate Subscription Ticket
                                 </button>

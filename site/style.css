@@ -457,10 +457,27 @@ p { /* Ensure paragraphs use body font */
 .payment-qr-selector { display: inline-flex; margin: .8rem auto .45rem; padding: .2rem; gap: .2rem; border-radius: 999px; background: #f2efdf; }
 .qr-currency-btn { min-width: 3.25rem; min-height: 2.75rem; padding: .45rem .8rem; border: 0; border-radius: 999px; background: transparent; color: #606c38; font-weight: 800; cursor: pointer; }
 .qr-currency-btn.is-active { color: #fff; background: #606c38; }
-.payment-qr-display { min-height: min(75vw,280px); display: grid; place-items: center; overflow: hidden; }
+.payment-qr-display { min-height: min(78vw,300px); display: grid; place-items: center; overflow: hidden; }
 .payment-qr-display > div { min-width: 0; }
-.payment-qr-display canvas, .payment-qr-display img { display: block; width: min(75vw,280px); height: auto; max-width: 100%; margin: .35rem auto; }
+.payment-qr-display canvas, .payment-qr-display img { display: block; width: min(78vw,300px); height: auto; max-width: 100%; margin: .35rem auto; }
+.payment-qr-display canvas { image-rendering: crisp-edges; }
 .payway-link { display: inline-block; min-height: 2.75rem; padding: .65rem .8rem; color: #283618; text-decoration: underline; font-weight: 700; }
+.post-order-actions { display: grid; gap: .65rem; margin: .75rem 0; }
+.post-order-actions button { min-height: 3rem; width: 100%; border-radius: .8rem; padding: .65rem 1rem; font-weight: 800; font-size: 1rem; cursor: pointer; transition: transform .16s ease, box-shadow .16s ease, background .16s ease; }
+.post-order-actions button:active { transform: translateY(1px); }
+.post-order-primary { color: #fff; background: var(--brand-primary); border: 1px solid var(--brand-primary); box-shadow: 0 5px 14px rgba(40,54,24,.18); }
+.post-order-secondary { color: var(--brand-primary); background: #fffdf7; border: 1px solid rgba(96,108,56,.45); }
+.receipt-polished { overflow-wrap: anywhere; }
+.receipt-header { text-align: center; padding: .25rem 0 .8rem; border-bottom: 1px solid rgba(40,54,24,.14); }
+.receipt-logo { display:block; width:auto; height:3.1rem; margin:0 auto .35rem; }
+.receipt-status { display:inline-block; padding:.28rem .65rem; border-radius:999px; background:#f5f0df; color:#606c38; font-size:.75rem; font-weight:800; }
+.receipt-header h3 { margin:.55rem 0 0; color:#283618; font-size:1.35rem; letter-spacing:.04em; overflow-wrap:anywhere; }
+.receipt-payment { margin-top:1rem; padding-top:.8rem; border-top:1px solid rgba(40,54,24,.14); text-align:center; }
+.receipt-payment h4 { margin:0 0 .25rem; color:#283618; font-size:1.05rem; }
+.receipt-payment p { margin:.25rem 0; color:#606c38; font-size:.85rem; }
+.receipt-addon-summary { margin:.7rem 0; color:#606c38; font-size:.8rem; }
+.receipt-more { margin-top:.8rem; border-top:1px dashed rgba(40,54,24,.25); padding-top:.55rem; }
+.receipt-more summary { cursor:pointer; color:#606c38; font-weight:800; padding:.45rem 0; }
 
 
 @keyframes spin {
@@ -901,7 +918,9 @@ p { /* Ensure paragraphs use body font */
     #ticket-card .qr-ticket-brand, #ticket-card .order-qr-code { max-width: 100%; overflow: hidden; }
     #ticket-card .order-qr-code canvas, #ticket-card .order-qr-code img { display: block; width: min(62vw,230px) !important; height: auto !important; max-width: 100%; margin: 0 auto; }
     #ticket-card .qr-ticket-reference { overflow-wrap: anywhere; }
-    .payment-qr-display { min-height: min(75vw,280px); }
+    .payment-qr-display { min-height: min(78vw,300px); }
+    .payment-qr-display canvas, .payment-qr-display img { width: min(78vw,300px); }
+    .post-order-actions button { min-height: 3rem; }
     #ticket-card .boarding-main { padding: .65rem .7rem .8rem; }
     #ticket-card .ticket-header { padding-left: .5rem; padding-right: .5rem; }
 }
