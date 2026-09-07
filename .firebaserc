@@ -1,0 +1,12 @@
+{
+  "projects": {
+    "phase5d": "vearuny"
+  },
+  "targets": {
+    "vearuny": {
+      "hosting": {
+        "phase5d-preview": ["vearuny"]
+      }
+    }
+  }
+}

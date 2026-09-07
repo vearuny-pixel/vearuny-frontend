@@ -437,6 +437,17 @@ p { /* Ensure paragraphs use body font */
      padding-top: 0.5rem;
      border-top: 1px dotted var(--brand-hint); /* Optional separator */
 }
+.quote-state { min-height: 1rem; margin: -.35rem 0 .35rem; color: var(--brand-hint); font-size: .75rem; text-align: right; }
+.quote-state.is-loading::after { content: ' ·'; animation: quote-dots 1s steps(3,end) infinite; }
+@keyframes quote-dots { 0%,20% { content: ' ·'; } 40% { content: ' ··'; } 60%,100% { content: ' ···'; } }
+.summary-breakdown { display: grid; gap: .35rem; margin: .15rem 0 .35rem; padding-bottom: .4rem; border-bottom: 1px solid rgba(96,108,56,.16); }
+.quote-item { display: grid; grid-template-columns: minmax(0,1fr) auto; gap: .15rem .75rem; padding: .4rem .15rem; font-size: .8rem; line-height: 1.25; }
+.quote-item > div:first-child { min-width: 0; display: flex; flex-direction: column; }
+.quote-item > div:first-child span { color: var(--brand-hint); font-size: .72rem; overflow-wrap: anywhere; }
+.quote-addon { grid-column: 1 / -1; display: flex; justify-content: space-between; gap: .5rem; color: var(--brand-hint); font-size: .73rem; overflow-wrap: anywhere; }
+.payment-qr-grid { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: .75rem; justify-items: center; align-items: start; margin-top: .75rem; }
+.payment-qr-grid > div { min-width: 0; width: 100%; text-align: center; }
+.payment-qr-grid canvas, .payment-qr-grid img { display: block; width: min(30vw,128px); height: auto; max-width: 100%; margin: .35rem auto 0; }
 
 
 @keyframes spin {
@@ -859,4 +870,24 @@ p { /* Ensure paragraphs use body font */
 #ticket-modal #close-ticket-modal-btn:active {
     transform: translateY(0);
     box-shadow: 0 0 10px 0 rgba(35,31,32,.30);
+}
+@media (max-width: 520px) {
+    .modal { padding: .4rem !important; align-items: flex-start; }
+    .modal-content { width: 100% !important; max-width: none !important; max-height: calc(100vh - .8rem); margin: 0 !important; padding: .8rem !important; border-radius: 1rem !important; }
+    .ticket-modal-content { overflow-x: hidden; }
+    #ticket-card { width: 100%; box-shadow: none; }
+    #ticket-card .ticket-face { min-width: 0; overflow-wrap: anywhere; }
+    #ticket-card .ticket-item { grid-template-columns: minmax(0,38%) minmax(0,62%); gap: .35rem; font-size: .78rem; word-break: break-word; }
+    #ticket-card .ticket-item > :last-child, #ticket-card .ticket-item strong { min-width: 0; overflow-wrap: anywhere; }
+    #ticket-card .ticket-total { font-size: .95rem; }
+    .ticket-action-row { grid-template-columns: 2.7rem minmax(0,1fr) 2.7rem; gap: .35rem; }
+    .ticket-icon-button { width: 2.7rem; height: 2.7rem; }
+    #ticket-modal #send-ticket-btn { min-height: 2.7rem; padding: .45rem .55rem; font-size: .78rem; white-space: normal; }
+    #ticket-card .qr-ticket-brand, #ticket-card .order-qr-code { max-width: 100%; overflow: hidden; }
+    #ticket-card .order-qr-code canvas, #ticket-card .order-qr-code img { display: block; width: min(62vw,230px) !important; height: auto !important; max-width: 100%; margin: 0 auto; }
+    #ticket-card .qr-ticket-reference { overflow-wrap: anywhere; }
+    .payment-qr-grid { gap: .35rem; }
+    .payment-qr-grid canvas, .payment-qr-grid img { width: min(35vw,112px); }
+    #ticket-card .boarding-main { padding: .65rem .7rem .8rem; }
+    #ticket-card .ticket-header { padding-left: .5rem; padding-right: .5rem; }
 }

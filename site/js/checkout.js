@@ -90,7 +90,7 @@
                     const label = document.createElement('label'); label.className = 'flex items-center gap-2 text-sm';
                     const input = document.createElement('input'); input.type='checkbox'; input.className='addon-checkbox'; input.checked=selected.has(addon.id);
                     input.dataset.item=String(index); input.value=addon.id;
-                    input.onchange=()=>{if(input.checked)selected.add(addon.id);else selected.delete(addon.id);};
+                    input.onchange=()=>{if(input.checked)selected.add(addon.id);else selected.delete(addon.id);updatePriceSummary();};
                     const text = document.createElement('span');
                     // Display API rule operands only; the API computes all effective charges.
                     text.textContent = `${ADD_ON_NAMES[addon.code][currentLanguage]} · $${rule.price_per_meal}/${currentLanguage==='kh'?'ពេល':'meal'} · ${rule.applicable_meal_count} ${currentLanguage==='kh'?'ពេលក្នុងឈុត':'applicable meals/set'}`;
@@ -698,6 +698,45 @@
             try { return '$' + CheckoutAPI.packageFor(catalog,plan,code).price; } catch { return '—'; }
         };
         const localDate = d => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+        let quoteTimer = null;
+        let quoteSequence = 0;
+        let latestQuote = null;
+        const setQuoteLoading = loading => {
+            const state=document.getElementById('quote-state');
+            if(state) { state.textContent=loading ? (currentLanguage==='kh'?'កំពុងគណនា…':'Updating total…') : ''; state.classList.toggle('is-loading',loading); }
+        };
+        const renderQuote = quote => {
+            latestQuote=quote;
+            const money=value=>`$${Number(value).toFixed(2)}`;
+            document.getElementById('summary-package-cost').textContent=money(quote.base_amount);
+            document.getElementById('summary-addon-cost').textContent=money(quote.addon_total);
+            document.getElementById('summary-delivery-cost').textContent=money(quote.delivery_fee);
+            document.getElementById('summary-total-cost').textContent=money(quote.total_amount);
+            document.getElementById('summary-discount').textContent=`-${money(quote.discount_amount)} (${quote.discount_percentage}%)`;
+            document.getElementById('discount-row').style.display=Number(quote.discount_amount)>0?'flex':'none';
+            document.getElementById('addon-cost-row').style.display=Number(quote.addon_total)>0?'flex':'none';
+            document.getElementById('delivery-cost-row').style.display='flex';
+            const breakdown=document.getElementById('summary-breakdown');
+            if(breakdown) breakdown.innerHTML=quote.items.map(item=>`<div class="quote-item"><div><strong>${escapeHTML(item.package_code)} × ${item.quantity}</strong><span>${escapeHTML(item.package_name || '')}</span></div><strong>${money(item.base_amount)}</strong>${item.addons.map(addon=>`<div class="quote-addon"><span>＋ ${escapeHTML(addon.name)} × ${addon.billable_meal_count}</span><span>${money(addon.total_amount)}</span></div>`).join('')}</div>`).join('');
+        };
+        const requestQuote = () => {
+            if(!checkoutClient || !catalog || checkoutClient.attempt?.receipt) return;
+            clearTimeout(quoteTimer);
+            quoteTimer=setTimeout(async()=>{
+                const sequence=++quoteSequence;
+                try {
+                    const form=getFormData('meal-order-form'), quantity=Number(form.quantity);
+                    if(!Number.isInteger(quantity)||quantity<1||quantity>100) return;
+                    const sets=getOrderedPackages(quantity).map((code,index)=>({code,addons:[...(selectedAddons.get(index)||[])].sort((a,b)=>a-b)}));
+                    const payload=CheckoutAPI.buildPayload(catalog,form,sets,currentLanguage,{quote:true});
+                    setQuoteLoading(true);
+                    const quote=await checkoutClient.quote(payload.order);
+                    if(sequence===quoteSequence) renderQuote(quote);
+                } catch(error) {
+                    if(sequence===quoteSequence) { latestQuote=null; document.getElementById('summary-total-cost').textContent='—'; showAlert(`${apiText().error} ${error.message}`); }
+                } finally { if(sequence===quoteSequence) setQuoteLoading(false); }
+            },250);
+        };
         const updatePriceSummary = () => {
             const plan = document.getElementById('plan_type').value;
             const quantity = Number(document.getElementById('quantity').value);
@@ -706,6 +745,7 @@
                 try { base = getOrderedPackages(quantity).reduce((sum,code)=>sum+Math.round(Number(CheckoutAPI.packageFor(catalog,plan,code).price)*100),0)/100; } catch {}
             }
             document.getElementById('summary-package-cost').textContent = base===null?'—':`$${base.toFixed(2)}`;
+            latestQuote=null;
             document.getElementById('summary-total-cost').textContent = '—';
             document.getElementById('total-meal-info').textContent = apiText().pending;
             for (const id of ['discount-row','delivery-cost-row','delivery-fee-note','promo-status']) document.getElementById(id).style.display='none';
@@ -717,6 +757,7 @@
             document.getElementById('nutrition-notes-label').textContent=apiText().nutrition;
             renderAddons();
             refreshCheckoutState();
+            requestQuote();
         };
         const refreshCheckoutState = () => {
             const attempt = checkoutClient?.attempt;
@@ -906,7 +947,7 @@
         const generateTicketCardHTML = () => {
             const lines = CheckoutAPI.receiptLines(receipt(),currentLanguage);
             if (!lines.length) return '';
-            return `<div class="ticket-flipper"><section class="ticket-face ticket-front"><div class="boarding-pass-layout"><div class="boarding-main"><img src="graylogo.png" alt="Vearuny" class="h-16 mx-auto"><div class="ticket-section-title">${escapeHTML(apiText().created)}</div>${lines.map(([k,v])=>`<div class="ticket-item"><span>${escapeHTML(k)}</span><strong>${escapeHTML(v)}</strong></div>`).join('')}<div class="mt-4 text-center">${escapeHTML(translations[currentLanguage].payment_instructions || (currentLanguage==='kh'?'សូមទូទាត់តាម PayWay':'Pay using the existing PayWay links'))}<div class="flex justify-center gap-6 mt-4"><div><a href="${PAYWAY_USD_LINK}" target="_blank" rel="noopener">PayWay USD</a><div id="qrcode-usd"></div></div><div><a href="${PAYWAY_KHR_LINK}" target="_blank" rel="noopener">PayWay KHR</a><div id="qrcode-khr"></div></div></div></div></div></div></section><section class="ticket-face ticket-back"><div class="qr-ticket-brand"><img class="qr-ticket-logo" src="graylogo.png" alt="Vearuny"></div><h3>${escapeHTML(FRIENDLY_TEXT[currentLanguage].qrTitle)}</h3><div id="order-qr-code" class="order-qr-code"></div><p>${escapeHTML(receipt().order.order_code)}</p><p>${escapeHTML(FRIENDLY_TEXT[currentLanguage].qrHelp)}</p></section></div>`;
+            return `<div class="ticket-flipper"><section class="ticket-face ticket-front"><div class="boarding-pass-layout"><div class="boarding-main"><img src="graylogo.png" alt="Vearuny" class="h-16 mx-auto"><div class="ticket-section-title">${escapeHTML(apiText().created)}</div>${lines.map(([k,v])=>`<div class="ticket-item"><span>${escapeHTML(k)}</span><strong>${escapeHTML(v)}</strong></div>`).join('')}<div class="mt-4 text-center">${escapeHTML(translations[currentLanguage].payment_instructions || (currentLanguage==='kh'?'សូមទូទាត់តាម PayWay':'Pay using the existing PayWay links'))}<div class="payment-qr-grid"><div><a href="${PAYWAY_USD_LINK}" target="_blank" rel="noopener">PayWay USD</a><div id="qrcode-usd"></div></div><div><a href="${PAYWAY_KHR_LINK}" target="_blank" rel="noopener">PayWay KHR</a><div id="qrcode-khr"></div></div></div></div></div></div></section><section class="ticket-face ticket-back"><div class="qr-ticket-brand"><img class="qr-ticket-logo" src="graylogo.png" alt="Vearuny"></div><h3>${escapeHTML(FRIENDLY_TEXT[currentLanguage].qrTitle)}</h3><div id="order-qr-code" class="order-qr-code"></div><p>${escapeHTML(receipt().order.order_code)}</p><p>${escapeHTML(FRIENDLY_TEXT[currentLanguage].qrHelp)}</p></section></div>`;
         };
 
         const copyTicketSummary = async () => {

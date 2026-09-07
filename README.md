@@ -42,3 +42,7 @@ shown from the created order response. The saved same-tab attempt retains its
 payload/key across uncertain responses and reloads. Payment instructions are
 shown after order creation; there is no browser payment confirmation or admin
 access. Firebase preview/staging deployment remains a separate approval step.
+
+Phase 5D preview preparation: see `docs/phase5d-preview.md` and
+`evidence/phase5d-upload-manifest.json`. Firebase files are prepared locally;
+authenticated access verification and explicit deployment approval remain pending.

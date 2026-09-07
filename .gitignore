@@ -11,6 +11,5 @@ test-results/
 *service-account*.json
 firebase-adminsdk*.json
 .firebase/
-.firebaserc
 firebase-debug.log*
 .DS_Store

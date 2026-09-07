@@ -21,6 +21,7 @@ async function page({failCatalog=false,failOrder=false,delayOrder=false,saved}={
   calls.push({url,options});const key=url.split('/').pop();
   if(['plans','packages','addons'].includes(key)){if(failCatalog)throw Error('offline');return send({status:'OK',[key]:catalog[key]})}
   if(key==='customers')return send({status:'OK',customer:{id:777}});
+  if(key==='quote')return send({status:'OK',quote:{meal_plan_id:1,plan_code:'WEEKLY',currency:'USD',base_amount:'91.23',discount_amount:'7.89',discount_rule:'new_subscriber',discount_percentage:8,addon_total:'12.34',delivery_fee:'0.00',total_amount:'95.68',items:JSON.parse(options.body).items.map(i=>({package_id:i.package_id,package_code:'F',package_name:'High-Protein Salad',quantity:i.quantity,base_amount:'91.23',addon_amount:'12.34',total_amount:'95.68',addons:[{id:1,name:'x2 Egg',billable_meal_count:5,total_amount:'12.34'}]}))}});
   if(key==='orders'){
    if(delayOrder)await gate;
    if(failures-- >0)throw Error('lost response');
@@ -32,7 +33,7 @@ async function page({failCatalog=false,failOrder=false,delayOrder=false,saved}={
  w.QRCode=function(node,options){node.dataset.qr=options.text};w.QRCode.CorrectLevel={H:1,L:1};
  if(saved)w.sessionStorage.setItem('vearuny.checkout.v1',saved);
  for(const file of ['lang-en.js','lang-kh.js','nutrition.js','js/nutrition-fallback.js','js/api.js','js/checkout.js'])w.eval(fs.readFileSync('site/'+file,'utf8'));
- w.document.dispatchEvent(new w.Event('DOMContentLoaded'));await tick();await tick();
+ w.document.dispatchEvent(new w.Event('DOMContentLoaded'));await tick();await new Promise(resolve=>setTimeout(resolve,320));
  const get=id=>w.document.getElementById(id);
  const change=(id,value)=>{get(id).value=value;get(id).dispatchEvent(new w.Event('change',{bubbles:true}))};
  const submit=()=>get('meal-order-form').dispatchEvent(new w.Event('submit',{bubbles:true,cancelable:true}));
@@ -42,8 +43,8 @@ async function page({failCatalog=false,failOrder=false,delayOrder=false,saved}={
 test('actual HTML initializes Khmer catalog; English switch preserves delivery geography and nutrition/menu UI',async()=>{
  const p=await page();try{
  assert.deepEqual(p.errors,[]);assert.equal(p.get('generate-ticket-btn').disabled,false);assert.equal(p.w.document.documentElement.lang,'km');
- assert.equal(p.w.document.querySelectorAll('.addon-checkbox').length,4);assert.equal(p.get('summary-total-cost').textContent,'—');assert.equal(p.get('discount-row').style.display,'none');
- assert.equal(p.get('commune').parentElement.classList.contains('hidden'),false);assert.equal(p.get('district').required,true);
+ assert.equal(p.w.document.querySelectorAll('.addon-checkbox').length,4);assert.equal(p.get('discount-row').style.display,'flex');assert.match(p.get('summary-breakdown').textContent,/High-Protein Salad/);
+ assert.equal(p.get('commune').parentElement.classList.contains('hidden'),false);assert.equal(p.get('district').required,true);assert.equal(p.get('summary-total-cost').textContent,'$95.68');
  const district=p.get('district').options[1].value;p.change('district',district);p.change('commune',p.get('commune').options[1].value);
  p.w.eval("setLanguage('en')");assert.equal(p.get('district').selectedIndex,1);assert.equal(p.get('commune').selectedIndex,1);assert.equal(p.w.document.documentElement.lang,'en');assert.match(p.get('package-buttons').textContent,/\$17.00/);
  await tick();p.w.eval('openNutritionModal()');assert.equal(p.get('nutrition-modal').classList.contains('hidden'),false);assert.ok(p.get('nutrition-content').textContent.length>100);assert.match(p.get('menu-image').src,/assets\/menus/);
@@ -53,7 +54,7 @@ test('DOM mixed sets, per-item add-ons, pending lock, double click, escaped auth
  const p=await page({delayOrder:true});try{
  p.fill();p.w.eval("setLanguage('en')");p.change('quantity','2');p.w.eval('handleQuantityChange()');p.get('diff_packages_check').checked=true;p.w.eval('handleDiffCheck()');
  const extra=p.w.document.querySelector('.additional-pkg-select');extra.value='F';extra.dispatchEvent(new p.w.Event('change'));
- const addons=p.w.document.querySelectorAll('.addon-checkbox');addons[0].click();addons[7].click();
+ p.w.document.querySelectorAll('.addon-checkbox')[0].click();await tick();p.w.document.querySelectorAll('.addon-checkbox')[7].click();
  p.change('nutrition_notes','NO REAL FOOD');p.submit();p.submit();await tick();assert.equal(p.get('generate-ticket-btn').disabled,true);assert.match(p.get('generate-ticket-btn').textContent,/Submitting/);assert.equal(p.get('customer_name').disabled,true);
  p.release();await tick();await tick();const orderCalls=p.calls.filter(c=>c.url.endsWith('/orders'));assert.equal(orderCalls.length,1);
  const order=JSON.parse(orderCalls[0].options.body);assert.equal(order.items.length,2);assert.deepEqual(order.items.map(i=>i.addons),[[{id:1}],[{id:4}]]);assert.equal(order.fulfillment_method,'pickup');assert.equal(order.district,null);

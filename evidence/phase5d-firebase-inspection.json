@@ -1,0 +1,65 @@
+{
+  "inspectedAt": "2026-09-07T01:24:20.383154+00:00",
+  "frontendCheckpoint": "ae9fd807897e2ed3a065d511e79f00c5d4fc6774",
+  "hostFirebaseCliInstalledInitially": false,
+  "isolatedCliVersion": "15.29.0",
+  "isolatedCliLocation": "/tmp/phase5d-firebase-cli/node_modules/firebase-tools",
+  "authenticatedAccounts": ["monioudom3@gmail.com"],
+  "projectsList": {"status": "success", "verifiedProjectId": "vearuny", "projectNumber": "132159274144"},
+  "hostingSitesList": {"projectId": "vearuny", "status": "success", "verifiedSiteId": "vearuny", "defaultUrl": "https://vearuny.web.app"},
+  "publicIdentity": {
+    "projectId": "vearuny",
+    "projectNumber": "132159274144",
+    "hostingSiteId": "vearuny",
+    "evidenceUrls": [
+      "https://vearuny.web.app/__/firebase/init.json",
+      "https://vearuny.firebaseapp.com/__/firebase/init.json"
+    ],
+    "authenticatedAccessVerified": true
+  },
+  "initialLocalAliases": {},
+  "initialLocalTargets": {},
+  "preparedLocalAlias": {
+    "phase5d": "vearuny"
+  },
+  "preparedLocalTarget": {
+    "phase5d-preview": [
+      "vearuny"
+    ]
+  },
+  "proposedChannel": "phase5d-acceptance-20260907",
+  "proposedExpiry": "7d",
+  "productionHtmlSha256": "c08ad72d765027bb308af8fc9158ee7460feda693a8e56c812f526c33716466e",
+  "fileDiscovery": {
+    "method": "firebase-tools 15.29.0 lib/listFiles.js, also used by deploy/hosting/deploy.js",
+    "offline": true,
+    "matchesManifest": true,
+    "fileCount": 31,
+    "totalBytes": 4745939
+  },
+  "deploymentExecuted": true,
+  "deployment": {
+    "channel": "phase5d-acceptance-20260907",
+    "url": "https://vearuny--phase5d-acceptance-20260907-vq7w50sd.web.app",
+    "expires": "2026-09-14T01:40:20.566897610Z",
+    "versionStatus": "FINALIZED",
+    "fileCount": 31,
+    "promotedToLive": false
+  },
+  "approvalRequested": true,
+  "approvalGranted": false,
+  "authenticatedChannelList": {"status": "success", "existingChannels": ["live"], "proposedChannelExists": false},
+  "productionChannelVerified": "live",
+  "syntaxChecksPassed": 12,
+  "offlineTestsPassed": 43,
+  "productionHtmlUnchangedAfterInspection": true,
+  "localPreviewListener": "127.0.0.1:4173",
+  "localTargetCliVerification": {
+    "status": "success",
+    "result": {
+      "phase5d-preview": [
+        "vearuny"
+      ]
+    }
+  }
+}

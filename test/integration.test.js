@@ -12,6 +12,12 @@ test('loads three catalogs and refuses missing confirmed add-ons',async()=>{
  assert.equal((await client.catalog()).addons.length,4);assert.equal(calls.length,3);
  await assert.rejects(createClient({fetchImpl:async url=>reply({status:'OK',[url.split('/').pop()]:[]})}).catalog(),/catalog unavailable/);
 });
+test('quote client uses the public quote route and accepts only authoritative totals',async()=>{
+ const calls=[]; const client=createClient({fetchImpl:async(url,options)=>{calls.push({url,options});return reply({status:'OK',quote:{base_amount:'80.00',discount_amount:'8.00',discount_rule:'new_subscriber',discount_percentage:8,addon_total:'10.00',delivery_fee:'0.00',total_amount:'82.00',currency:'USD',items:[]}})}});
+ const quote=await client.quote({meal_plan_id:2,items:[{package_id:10,quantity:1,addons:[]}]});
+ assert.equal(quote.total_amount,'82.00');assert.equal(calls[0].url,'https://api.vearuny.com/api/checkout/quote');assert.equal(calls[0].options.method,'POST');
+ await assert.rejects(client.request('/api/payments/1/confirm',{}),/Unsupported public/);
+});
 for(const plan of ['weekly','monthly'])for(const code of 'ABCDEF')test(`${plan} ${code} resolves API IDs, price-free quantity and add-ons`,()=>{
  const result=buildPayload(catalog,{...form,plan_type:plan,quantity:'2'},[{code,addons:[1,2,3,4]},{code,addons:[1,2,3,4]}],'kh');
  const item=result.order.items[0];assert.equal(result.order.items.length,1);assert.equal(item.quantity,2);assert.equal(item.package_id,catalog.packages.find(p=>p.plan_code===plan.toUpperCase()&&p.package_code===code).id);assert.equal(item.addons.length,4);assert.equal(result.customer.language,'KH');assert.ok(!JSON.stringify(result).match(/price|discount|amount|billable/));

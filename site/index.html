@@ -264,8 +264,10 @@
 
                             <h3 class="font-bold text-2xl mb-1 text-gray-800" data-lang-key="summary_title">Order Summary</h3>
                             <p id="total-meal-info" class="text-sm text-gray-500 mb-6" data-lang-key="summary_total_meals">You will receive X meals for Y days.</p>
+                            <p id="quote-state" class="quote-state" role="status" aria-live="polite"></p>
 
                             <div class="space-y-3 text-base text-gray-700 font-medium">
+                                <div id="summary-breakdown" class="summary-breakdown" aria-live="polite"></div>
                                 <div class="flex justify-between items-center p-2 rounded-lg hover:bg-gray-50 transition-colors">
                                     <span data-lang-key="summary_package_cost">Package Cost:</span>
                                     <span id="summary-package-cost" class="font-semibold text-gray-900">$0.00</span>
