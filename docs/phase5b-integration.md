@@ -1,5 +1,9 @@
 # Phase 5B frontend API integration
 
+Historical integration record. Firebase preparation instructions below are
+superseded by [the preview-only deployment workflow](firebase-deployment.md).
+Current asset validation pins Phase 5G commit `407f5f0b59fc861660d2837ed370a3e6e7f8c920`.
+
 Implemented against backend `748131b60bb1ae63256b02dd06bef6be56ef30f4`.
 Reconstructed history: `98e3452`, formatting preservation `8ae6e6c`;
 pre-change Git checkpoint: `5bef3cf`.

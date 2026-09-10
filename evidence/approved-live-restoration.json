@@ -1,0 +1,12 @@
+{
+  "url": "https://vearuny.web.app",
+  "status": 200,
+  "sha256": "c08ad72d765027bb308af8fc9158ee7460feda693a8e56c812f526c33716466e",
+  "version": "9f7f9106ddaeadcf",
+  "productionChannel": "live",
+  "previewUrl": "https://vearuny--restore-check-20260907-529t209m.web.app",
+  "previewVersion": "9f7f9106ddaeadcf",
+  "previewExpiresAt": "2026-09-14T12:06:25.105305236Z",
+  "method": "firebase hosting:clone vearuny@9f7f9106ddaeadcf vearuny:live --project vearuny --non-interactive",
+  "localContentUploaded": false
+}

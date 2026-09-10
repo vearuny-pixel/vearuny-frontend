@@ -1,4 +1,5 @@
 """Local publish-tree audit only; never authenticates, uploads, or deploys."""
+import argparse
 import hashlib
 import json
 from pathlib import Path
@@ -7,7 +8,10 @@ import subprocess
 import sys
 
 ROOT = Path(__file__).resolve().parents[1]
-CHECKPOINT = 'ae9fd807897e2ed3a065d511e79f00c5d4fc6774'
+CHECKPOINT = '407f5f0b59fc861660d2837ed370a3e6e7f8c920'
+parser = argparse.ArgumentParser(description=__doc__)
+parser.add_argument('--write', action='store_true')
+options = parser.parse_args()
 
 def require(condition, message):
     if not condition:
@@ -19,10 +23,11 @@ def git(*args):
 config = json.loads((ROOT / 'firebase.json').read_text())
 rc = json.loads((ROOT / '.firebaserc').read_text())
 require(set(config) == {'hosting'}, 'Only static Hosting is allowed')
-require(set(config['hosting']) == {'headers', 'ignore', 'public', 'target'}, 'Unexpected Hosting options/hooks')
+require(set(config['hosting']) == {'headers', 'ignore', 'public', 'site', 'predeploy'}, 'Unexpected Hosting options/hooks')
 require(config['hosting']['public'] == 'site', 'Publish source must be site/')
-require(config['hosting']['target'] == 'phase5d-preview', 'Unexpected Hosting target')
-require(rc == {'projects': {'phase5d': 'vearuny'}, 'targets': {'vearuny': {'hosting': {'phase5d-preview': ['vearuny']}}}}, 'Unexpected alias/target mapping')
+require(config['hosting']['site'] == 'vearuny', 'Unexpected Hosting site')
+require(rc == {'projects': {'default': 'vearuny'}}, 'Unexpected alias/target mapping')
+require(config['hosting']['predeploy'] == ['python3 -B scripts/firebase-deploy-guard.py'], 'Deployment guard must remain enabled')
 tracked = sorted(git('ls-tree', '-r', '--name-only', CHECKPOINT, '--', 'site').decode().splitlines())
 paths = []
 
@@ -53,12 +58,12 @@ for name in sorted(paths):
 report = {
     'frontendCheckpoint': CHECKPOINT, 'projectId': 'vearuny', 'hostingSiteId': 'vearuny',
     'productionChannel': 'live', 'productionUrl': 'https://vearuny.web.app',
-    'target': 'phase5d-preview', 'alias': 'phase5d',
-    'previewChannel': 'phase5d-acceptance-20260907', 'expiry': '7d', 'publicDirectory': 'site',
+    'alias': 'default',
+    'previewChannel': 'phase5g-acceptance-20260910', 'expiry': '7d', 'publicDirectory': 'site',
     'deploymentExecuted': False, 'authenticatedAccessVerified': False,
     'fileCount': len(files), 'totalBytes': sum(f['bytes'] for f in files), 'files': files,
 }
 text = json.dumps(report, indent=2) + '\n'
-if '--write' in sys.argv:
-    (ROOT / 'evidence/phase5d-upload-manifest.json').write_text(text)
+if options.write:
+    (ROOT / 'evidence/phase5g-upload-manifest.json').write_text(text)
 print(text, end='')

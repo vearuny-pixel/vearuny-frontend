@@ -1,0 +1,15 @@
+{
+  "verifiedAt": "2026-09-10T12:57:09.117056+00:00",
+  "liveVersion": "9f7f9106ddaeadcf",
+  "releaseTime": "2026-09-07T13:18:10.689Z",
+  "httpStatus": 200,
+  "htmlSha256": "c08ad72d765027bb308af8fc9158ee7460feda693a8e56c812f526c33716466e",
+  "newChannel": "phase5g-acceptance-20260910",
+  "newChannelExists": false,
+  "deploymentExecuted": false,
+  "guardTests": {
+    "passed": 11,
+    "firebaseInvoked": false
+  },
+  "assetManifest": "phase5g-upload-manifest.json"
+}

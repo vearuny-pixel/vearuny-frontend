@@ -1,6 +1,5 @@
 {
   "hosting": {
-    "target": "phase5d-preview",
     "public": "site",
     "ignore": [
       "**/.*",
@@ -12,10 +11,23 @@
       "**/{package.json,package-lock.json,AGENTS.md,SKILL.md}"
     ],
     "headers": [
-      {"source": "**", "headers": [
-        {"key": "Cache-Control", "value": "no-store"},
-        {"key": "X-Robots-Tag", "value": "noindex, nofollow"}
-      ]}
-    ]
+      {
+        "source": "**",
+        "headers": [
+          {
+            "key": "Cache-Control",
+            "value": "no-store"
+          },
+          {
+            "key": "X-Robots-Tag",
+            "value": "noindex, nofollow"
+          }
+        ]
+      }
+    ],
+    "predeploy": [
+      "python3 -B scripts/firebase-deploy-guard.py"
+    ],
+    "site": "vearuny"
   }
 }

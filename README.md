@@ -1,7 +1,7 @@
 # Vearuny checkout frontend
 
-Reconstructed bilingual checkout integrated with the public Vearuny API against
-backend `748131b60bb1ae63256b02dd06bef6be56ef30f4`. No Firebase deployment performed.
+Reconstructed bilingual checkout integrated with the public Vearuny commercial API. Phase 5G assets are pinned at
+`407f5f0b59fc861660d2837ed370a3e6e7f8c920`; production serves the restored historical version.
 
 - `site/`: maintained checkout, local menu/font/rendering assets, API client.
 - `recovered/`: original public assets, preserved byte-for-byte.
@@ -43,6 +43,8 @@ payload/key across uncertain responses and reloads. Payment instructions are
 shown after order creation; there is no browser payment confirmation or admin
 access. Firebase preview/staging deployment remains a separate approval step.
 
-Phase 5D preview preparation: see `docs/phase5d-preview.md` and
-`evidence/phase5d-upload-manifest.json`. Firebase files are prepared locally;
-authenticated access verification and explicit deployment approval remain pending.
+Deployment status and the preview-only workflow: see
+[firebase-deployment.md](docs/firebase-deployment.md). Phase 5D deployment notes
+and its manifest are historical evidence. The new Phase 5G channel
+`phase5g-acceptance-20260910` is prepared but requires approval before creation.
+All `firebase deploy` commands are blocked by the repository hook.

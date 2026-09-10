@@ -1,3 +1,15 @@
+# Historical Phase 5D deployment record
+
+This document preserves the original preparation/deployment notes below; their
+aliases, commands, checkpoint and initial expiry are not current instructions.
+Use [firebase-deployment.md](firebase-deployment.md) for the current workflow.
+Authenticated recovery inspection on September 10 found Phase 5D version
+`cd273dc7c9cb368c`, released September 7 at `02:49:01.811Z`, expiring September 14
+at `02:48:58.086979718Z`. Production was subsequently deployed twice and then
+restored to `9f7f9106ddaeadcf` on September 7 at `13:18:10.689Z`.
+The earlier statements about unchanged production apply only to that earlier
+operation, not the complete release history.
+
 # Phase 5D Firebase preview deployment
 
 The frontend remains byte-identical to integration checkpoint
@@ -157,7 +169,8 @@ or access is absent, stop; do not guess another ID or create any project/site.
 
 The verified target and exact manifest were approved for deployment.
 
-The executed command was:
+The original committed Phase 5D record lists this historical command (do not
+reuse it with the current configuration):
 
 ```sh
 firebase hosting:channel:deploy phase5d-acceptance-20260907 --only phase5d-preview --expires 7d --project vearuny --config firebase.json --no-authorized-domains --non-interactive
