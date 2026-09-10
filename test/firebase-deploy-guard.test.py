@@ -58,6 +58,19 @@ class DeploymentGuardTests(unittest.TestCase):
         self.assertEqual(hosting['site'], 'vearuny')
         self.assertEqual(hosting['public'], 'site')
 
+    def test_standalone_cli_and_helpers(self):
+        executable = '/usr/local/bin/firebase'
+        script = '/root/.cache/firebase/tools/lib/node_modules/firebase-tools/lib/bin/firebase'
+        for args in (['deploy'], ['deploy', '--only', 'hosting'], guard.preview_arguments(CHANNEL)):
+            self.assertEqual(guard.cli_arguments([executable, script, *args]), args)
+            self.assertEqual(guard.cli_arguments([executable, *args]), args)
+            if args[0] == 'deploy':
+                with self.assertRaises(ValueError):
+                    guard.authorize(guard.cli_arguments([executable, script, *args]),
+                                    {'GCLOUD_PROJECT': 'vearuny'})
+        self.assertIsNone(guard.cli_arguments([executable, '/tool/cross-env-shell.js', 'hook']))
+        self.assertIsNone(guard.cli_arguments(['sh', '-c', 'firebase deploy']))
+
     def test_hook_process_ancestry_offline(self):
         # An inert fixture models CLI -> shell -> hook using real /proc ancestry.
         with tempfile.TemporaryDirectory() as tmp:

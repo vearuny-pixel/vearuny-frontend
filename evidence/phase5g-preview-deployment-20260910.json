@@ -1,0 +1,173 @@
+{
+  "verifiedAt": "2026-09-10T13:03:12.922849+00:00",
+  "previewUrl": "https://vearuny--phase5g-acceptance-20260910-gsof5not.web.app",
+  "previewChannel": "sites/vearuny/channels/phase5g-acceptance-20260910",
+  "previewVersion": "sites/vearuny/versions/2c841578e7f2799f",
+  "previewReleaseTime": "2026-09-10T13:02:49.956Z",
+  "expiresAt": "2026-09-17T13:02:44.966410894Z",
+  "previewHttpStatus": 200,
+  "assetCheckpoint": "407f5f0b59fc861660d2837ed370a3e6e7f8c920",
+  "verifiedAssetCount": 31,
+  "liveVersion": "9f7f9106ddaeadcf",
+  "liveReleaseTime": "2026-09-07T13:18:10.689Z",
+  "liveHttpStatus": 200,
+  "liveHtmlSha256": "c08ad72d765027bb308af8fc9158ee7460feda693a8e56c812f526c33716466e",
+  "liveUnchanged": true,
+  "assets": [
+    {
+      "path": "assets/LOGO+BG.png",
+      "status": 200,
+      "sha256": "7a9b423e67b7b25e61595f642bcb8b935013064b188dc68d0bb10ad62a12e368"
+    },
+    {
+      "path": "assets/menus/A.jpg",
+      "status": 200,
+      "sha256": "ade3024a6a88e43eeff60f6548061bec3feceb041c8bbce408dbaea845362af7"
+    },
+    {
+      "path": "assets/menus/B.jpg",
+      "status": 200,
+      "sha256": "655c53a88d4eb1dd0a596eaeae80c4fdad5aaa6aea397f1cb611ef43c4da9e7f"
+    },
+    {
+      "path": "assets/menus/C.jpg",
+      "status": 200,
+      "sha256": "724d9089b22fdd40afe490a635c1d57eb6c66969744e3233a202f885c1f78df8"
+    },
+    {
+      "path": "assets/menus/D.jpg",
+      "status": 200,
+      "sha256": "c089921856d639f916e58a31145fb21b16941718e78b1164c09ad6a714bef64a"
+    },
+    {
+      "path": "assets/menus/E.jpg",
+      "status": 200,
+      "sha256": "3b726738ec3139d14d5c181f42e70f3ea251f0e429e603249ee9db550897bab2"
+    },
+    {
+      "path": "assets/menus/F.jpg",
+      "status": 200,
+      "sha256": "b7a17e8e0764862faee1ee140a70e9837fdacd4d562a6fdff92a93c640496ea6"
+    },
+    {
+      "path": "assets/menus/a.jpg",
+      "status": 200,
+      "sha256": "d0ac8d09012c2ac4a7d546bda19b2bdca9e4552f7acaa1b1fb55af779147c80d"
+    },
+    {
+      "path": "assets/menus/b.jpg",
+      "status": 200,
+      "sha256": "db4324679b564566a90a75713209ba60bfbbfde9880cf6addd3eb72792550378"
+    },
+    {
+      "path": "assets/menus/c.jpg",
+      "status": 200,
+      "sha256": "9964482e1af4a13f75c4259526aa7ba105586e309fd3f491fca4c9269285e8d5"
+    },
+    {
+      "path": "assets/menus/d.jpg",
+      "status": 200,
+      "sha256": "0385a4e58b90b7e6df8d182b7d5532201f66174d919ab591b68cc01b20301433"
+    },
+    {
+      "path": "assets/menus/e.jpg",
+      "status": 200,
+      "sha256": "fa42bdbae57b046760418661298f97b41bffbeb2687cac324dce7b592451f1c8"
+    },
+    {
+      "path": "assets/menus/f.jpg",
+      "status": 200,
+      "sha256": "8edd3ee01ab7add8644cf259c6d2b50c74a910de90a8ab7393dcce35c7724c93"
+    },
+    {
+      "path": "graylogo.png",
+      "status": 200,
+      "sha256": "d6ae0dd36015f83103fbd06ffc247f9d734c553c461983d92231240e33c49fac"
+    },
+    {
+      "path": "index.html",
+      "status": 200,
+      "sha256": "dece1a3ca46efc1677138dca08e3cc8a3ac209e5c7192af7f91e902ecc3d2e14"
+    },
+    {
+      "path": "js/api.js",
+      "status": 200,
+      "sha256": "530fe63afb36029925d4d6583b7eba6c9ebc87c8515b01b1a9c4e886ce37f459"
+    },
+    {
+      "path": "js/checkout.js",
+      "status": 200,
+      "sha256": "43391e076ece18851a5f78b016737d6a8d7c55085a427b2931c10a1493bd062a"
+    },
+    {
+      "path": "js/nutrition-fallback.js",
+      "status": 200,
+      "sha256": "c4de366b2b3ae1baa2fcd9b89f44fd205baae9ba53cb3c30386081fea34f0e54"
+    },
+    {
+      "path": "lang-en.js",
+      "status": 200,
+      "sha256": "8f4003e46043308fd717d5c50c674db2aec53b8badfc2bd89b83e61de5f1a94f"
+    },
+    {
+      "path": "lang-kh.js",
+      "status": 200,
+      "sha256": "ecb9166de079314158a666de754ed0357c5d35528be0338b67fb336d209c28d2"
+    },
+    {
+      "path": "manifest.json",
+      "status": 200,
+      "sha256": "be5283029662f216c0b37b557b933efce92a728addf45f578791c8d0d94790b2"
+    },
+    {
+      "path": "nutrition.js",
+      "status": 200,
+      "sha256": "b37d9ff48d4dca10025c6ceda6645a7f1a1aa1e141d8cf0f480ddce1dbab41b3"
+    },
+    {
+      "path": "style.css",
+      "status": 200,
+      "sha256": "93fe648e44e2a127e7821736bcfa0e10584f10158e97d18a96f753c9f6648f51"
+    },
+    {
+      "path": "vendor/fonts.css",
+      "status": 200,
+      "sha256": "dc158f239e7b598c1f78cef6b3c3be3638b9ddf89f847921d36e5e5eb2b4b7e3"
+    },
+    {
+      "path": "vendor/fonts/ijw3s5roRME5LLRxjsRb-gssOenAyendxrgV2c-Zw-9vbVUti_Z_dWgtWYtTB5z4.ttf",
+      "status": 200,
+      "sha256": "b8c5e0b02791e20ae8d9cf899e2f9aedc081c4728303ea92736be6b878458dda"
+    },
+    {
+      "path": "vendor/fonts/ijw3s5roRME5LLRxjsRb-gssOenAyendxrgV2c-Zw-9vbVUti_Z_dWgtWYuNAJz4.ttf",
+      "status": 200,
+      "sha256": "a6b8a41682170ee0c8df82adb86650498c1a833c4ca00c1f043c81305680dbe8"
+    },
+    {
+      "path": "vendor/html2canvas.min.js",
+      "status": 200,
+      "sha256": "e87e550794322e574a1fda0c1549a3c70dae5a93d9113417a429016838eab8cb"
+    },
+    {
+      "path": "vendor/jspdf.umd.min.js",
+      "status": 200,
+      "sha256": "98ccf17aa10c20bb1301762618fcc9b6ab3a4e7f26b6071d64d0b41154df3875"
+    },
+    {
+      "path": "vendor/qrcode.min.js",
+      "status": 200,
+      "sha256": "c541ef06327885a8415bca8df6071e14189b4855336def4f36db54bde8484f36"
+    },
+    {
+      "path": "vendor/tailwind.js",
+      "status": 200,
+      "sha256": "176e894661aa9cdc9a5cba6c720044cbbf7b8bd80d1c9a142a7c24b1b6c50d15"
+    },
+    {
+      "path": "vendor/telegram-web-app.js",
+      "status": 200,
+      "sha256": "3549138a7934039fe7dfd1291a4ee739bd2b705a614308053a8b08a87d85c451"
+    }
+  ]
+}

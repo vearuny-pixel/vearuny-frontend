@@ -22,15 +22,26 @@ def preview_arguments(channel):
             str(ROOT / 'firebase.json'), '--no-authorized-domains', '--non-interactive']
 
 
+def cli_arguments(argv):
+    # Standalone Firebase uses its executable as Node for the CLI and hook helpers.
+    # The nested CLI script comes before the real command in this distribution.
+    if len(argv) > 1 and Path(argv[1]).name in ('firebase', 'firebase.js'):
+        return argv[2:]
+    if argv and Path(argv[0]).name in ('firebase', 'firebase.js'):
+        if len(argv) > 1 and Path(argv[1]).name == 'cross-env-shell.js':
+            return None  # Hook helper, continue to the actual CLI ancestor.
+        return argv[1:]
+    return None
+
+
 def firebase_arguments():
     pid = os.getppid()
     while pid > 1:
         proc = Path('/proc') / str(pid)
         argv = [x.decode() for x in (proc / 'cmdline').read_bytes().split(b'\0') if x]
-        # Match an executable/script argument, never shell command text.
-        for i, arg in enumerate(argv[:2]):
-            if Path(arg).name in ('firebase', 'firebase.js'):
-                return argv[i + 1:]
+        args = cli_arguments(argv)
+        if args is not None:
+            return args
         status = (proc / 'status').read_text()
         pid = int(re.search(r'^PPid:\s+(\d+)', status, re.M).group(1))
     raise ValueError('Cannot verify the Firebase CLI invocation')

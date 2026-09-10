@@ -6,11 +6,22 @@ There are no Hosting target aliases. A Firebase site contains both live and
 preview channels; a site or target name never isolates a preview. Isolation
 comes from `hosting:channel:deploy` with an explicit non-live channel ID.
 
-## Prepared Phase 5G preview — approval pending
+## Phase 5G preview — deployed September 10, 2026
 
 Reviewed frontend asset checkpoint: `407f5f0b59fc861660d2837ed370a3e6e7f8c920`.
 New channel: `phase5g-acceptance-20260910`. Expiry: seven days from creation.
-No channel creation or deployment is authorized by this preparation.
+The owner approved creation and deployment. The guarded workflow released version
+`2c841578e7f2799f` to
+https://vearuny--phase5g-acceptance-20260910-gsof5not.web.app, expiring September 17
+at `13:02:44.966410894Z`. All 31 served files match the reviewed checkpoint; LIVE
+version and HTML hash remained unchanged. See
+[evidence](../evidence/phase5g-preview-deployment-20260910.json).
+
+The first attempt created the channel but the hook rejected the standalone CLI
+argument layout before upload. Process detection was corrected to recognize its
+nested CLI script and skip the internal cross-env helper. All 12 offline tests
+passed before retrying the same guarded command successfully. No guard bypass
+or live deployment was used. Further deployments require their own approval.
 
 Safe local preparation (never invokes Firebase):
 

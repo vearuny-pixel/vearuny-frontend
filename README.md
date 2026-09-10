@@ -45,6 +45,7 @@ access. Firebase preview/staging deployment remains a separate approval step.
 
 Deployment status and the preview-only workflow: see
 [firebase-deployment.md](docs/firebase-deployment.md). Phase 5D deployment notes
-and its manifest are historical evidence. The new Phase 5G channel
-`phase5g-acceptance-20260910` is prepared but requires approval before creation.
+and its manifest are historical evidence. Phase 5G channel
+`phase5g-acceptance-20260910` was deployed with approval on September 10;
+its verified release and expiry are recorded in the deployment document.
 All `firebase deploy` commands are blocked by the repository hook.
