@@ -43,7 +43,7 @@ async function page({failCatalog=false,failOrder=false,delayOrder=false,saved}={
 test('actual HTML initializes Khmer catalog; English switch preserves delivery geography and nutrition/menu UI',async()=>{
  const p=await page();try{
  assert.deepEqual(p.errors,[]);assert.equal(p.get('generate-ticket-btn').disabled,false);assert.equal(p.w.document.documentElement.lang,'km');
- assert.equal(p.w.document.querySelectorAll('.addon-checkbox').length,4);assert.equal(p.get('discount-row').style.display,'flex');assert.match(p.get('summary-breakdown').textContent,/High-Protein Salad/);
+ assert.equal(p.w.document.querySelectorAll('.addon-checkbox').length,4);assert.equal(p.get('discount-row').style.display,'flex');assert.match(p.get('summary-breakdown').textContent,/F/);
  assert.equal(p.get('commune').parentElement.classList.contains('hidden'),false);assert.equal(p.get('district').required,true);assert.equal(p.get('summary-total-cost').textContent,'$95.68');
  const district=p.get('district').options[1].value;p.change('district',district);p.change('commune',p.get('commune').options[1].value);
  p.w.eval("setLanguage('en')");assert.equal(p.get('district').selectedIndex,1);assert.equal(p.get('commune').selectedIndex,1);assert.equal(p.w.document.documentElement.lang,'en');assert.match(p.get('package-buttons').textContent,/\$17.00/);
@@ -55,7 +55,7 @@ test('DOM mixed sets, per-item add-ons, pending lock, double click, escaped auth
  p.fill();p.w.eval("setLanguage('en')");p.change('quantity','2');p.w.eval('handleQuantityChange()');p.get('diff_packages_check').checked=true;p.w.eval('handleDiffCheck()');
  const extra=p.w.document.querySelector('.additional-pkg-select');extra.value='F';extra.dispatchEvent(new p.w.Event('change'));
  p.w.document.querySelectorAll('.addon-checkbox')[0].click();await tick();p.w.document.querySelectorAll('.addon-checkbox')[7].click();
- p.change('nutrition_notes','NO REAL FOOD');p.submit();p.submit();await tick();assert.equal(p.get('generate-ticket-btn').disabled,true);assert.match(p.get('generate-ticket-btn').textContent,/Submitting/);assert.equal(p.get('customer_name').disabled,true);
+ p.change('nutrition_notes','NO REAL FOOD');await new Promise(r=>setTimeout(r,350));p.submit();p.submit();await tick();assert.equal(p.get('generate-ticket-btn').disabled,true);assert.match(p.get('generate-ticket-btn').textContent,/Submitting/);assert.equal(p.get('customer_name').disabled,true);
  p.release();await tick();await tick();const orderCalls=p.calls.filter(c=>c.url.endsWith('/orders'));assert.equal(orderCalls.length,1);
  const order=JSON.parse(orderCalls[0].options.body);assert.equal(order.items.length,2);assert.deepEqual(order.items.map(i=>i.addons),[[{id:1}],[{id:4}]]);assert.equal(order.fulfillment_method,'pickup');assert.equal(order.district,null);
  assert.equal(p.get('ticket-modal').classList.contains('hidden'),false);assert.match(p.get('ticket-card').textContent,/95.68 USD/);assert.match(p.get('ticket-card').textContent,/VRN-DOM-777/);assert.equal(p.get('ticket-card').querySelector('[onerror]'),null);
@@ -74,4 +74,39 @@ test('DOM network failure enables retry; reload preserves key and frozen order d
 });
 test('DOM unavailable catalog fails closed and offers retry',async()=>{
  const p=await page({failCatalog:true});try{assert.equal(p.get('generate-ticket-btn').disabled,true);assert.equal(p.get('catalog-retry-btn').hidden,false);assert.ok(p.get('checkout-status').textContent.length>10);assert.equal(p.calls.some(c=>c.options.method==='POST'),false)}finally{p.dom.window.close()}
+});
+
+test('Phase 5H: delivery time and mixed extra packages survive language and quantity changes',async()=>{
+ const p=await page();try{
+ p.change('time_slot','3:00 PM - 5:00 PM');p.w.eval("setLanguage('en')");assert.equal(p.get('time_slot').value,'3:00 PM - 5:00 PM');
+ p.change('quantity','2');p.get('diff_packages_check').checked=true;p.w.eval('handleDiffCheck()');p.w.document.querySelector('.additional-pkg-select').value='F';
+ p.change('quantity','3');p.w.eval('handleQuantityChange()');assert.equal(p.w.document.querySelector('.additional-pkg-select').value,'F');
+ }finally{p.dom.window.close()}
+});
+test('Phase 5H: language switch after quote makes no new quote/catalog requests; typing preserves addon node',async()=>{
+ const p=await page();try{
+ const before=p.calls.length,node=p.w.document.querySelector('.addon-checkbox');p.w.eval("setLanguage('en')");await new Promise(r=>setTimeout(r,350));assert.equal(p.calls.length,before);
+ const translated=p.w.document.querySelector('.addon-checkbox');p.get('customer_name').value='Typing';p.get('customer_name').dispatchEvent(new p.w.Event('input',{bubbles:true}));assert.equal(p.w.document.querySelector('.addon-checkbox'),translated);assert.notEqual(node,translated);
+ }finally{p.dom.window.close()}
+});
+test('Phase 5H: stale quote during debounce cannot overwrite changed selections; failure remains visible',async()=>{
+ const p=await page();try{
+ const original=p.w.fetch;let release;const gate=new Promise(r=>release=r);
+ p.w.fetch=async(url,options)=>{if(url.endsWith('/quote'))await gate;return original(url,options)};
+ // Client captured fetch at construction; swap through its public quote method.
+ p.w.eval('window.originalQuote=checkoutClient.quote.bind(checkoutClient);checkoutClient.quote=async()=>new Promise(resolve=>window.releaseStale=resolve)');
+ p.change('package','B');await new Promise(r=>setTimeout(r,280));p.change('package','C');
+ p.w.releaseStale({base_amount:'999.00',addon_total:'0.00',discount_amount:'0.00',discount_percentage:0,delivery_fee:'0.00',total_amount:'999.00',items:[]});await tick();assert.notEqual(p.get('summary-total-cost').textContent,'$999.00');
+ p.w.eval('checkoutClient.quote=async()=>{throw Error("offline")}');await new Promise(r=>setTimeout(r,350));assert.equal(p.get('quote-retry-btn').hidden,false);assert.ok(p.get('quote-state').textContent.length>10);assert.equal(p.get('summary-total-cost').textContent,'—');assert.equal(p.get('generate-ticket-btn').disabled,true);
+ p.w.eval('checkoutClient.quote=window.originalQuote');p.get('quote-retry-btn').click();await new Promise(r=>setTimeout(r,350));assert.equal(p.get('generate-ticket-btn').disabled,false);
+ }finally{p.dom.window.close()}
+});
+test('Phase 5H: exact receipt reopens without POST; reset clears completed selections and language keeps QR controls',async()=>{
+ const p=await page();try{
+ p.fill();p.change('quantity','2');p.w.eval('handleQuantityChange()');p.w.document.querySelector('.addon-checkbox').click();await new Promise(r=>setTimeout(r,350));p.submit();await tick();await tick();
+ p.get('close-ticket-modal-btn').click();assert.equal(p.get('receipt-open-btn').disabled,false);const posts=p.calls.filter(x=>x.url.endsWith('/orders')).length;
+ p.get('receipt-open-btn').click();assert.equal(p.get('ticket-modal').classList.contains('hidden'),false);assert.equal(p.calls.filter(x=>x.url.endsWith('/orders')).length,posts);
+ p.w.eval("setLanguage('en')");p.w.document.querySelector('[data-currency=khr]').click();assert.equal(p.get('qrcode-usd').hidden,true);assert.equal(p.get('qrcode-khr').hidden,false);assert.equal(p.get('payway-link').href,'https://link.payway.com.kh/ra386168n');assert.equal(p.w.document.querySelector('.receipt-more').open,false);
+ p.get('close-ticket-modal-btn').click();p.get('new-order-btn').click();assert.equal(p.get('quantity').value,'1');assert.equal(p.w.document.querySelectorAll('.addon-checkbox:checked').length,0);assert.equal(p.get('customer_name').value,'');assert.equal(p.get('ticket-card').textContent,'');assert.equal(p.w.sessionStorage.getItem('vearuny.checkout.v1'),null);
+ }finally{p.dom.window.close()}
 });

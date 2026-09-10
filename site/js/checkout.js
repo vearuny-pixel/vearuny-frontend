@@ -19,7 +19,6 @@
         let catalog = null;
         let checkoutClient = null;
         let catalogLoading = false;
-        const menuImageCache = new Map();
         const apiText = () => CheckoutAPI.labels[currentLanguage];
         const receipt = () => checkoutClient?.attempt?.receipt;
         const escapeHTML = value => String(value ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -72,13 +71,16 @@
             const different = document.getElementById('diff_packages_check')?.checked && quantity > 1;
             return different ? [main, ...[...document.querySelectorAll('.additional-pkg-select')].map(s=>s.value)] : Array(quantity).fill(main);
         };
+        let addonRenderKey = '';
         const renderAddons = () => {
             const box = document.getElementById('addon-options');
-            box.replaceChildren();
             if (!catalog) return;
             const quantity = Number(document.getElementById('quantity').value);
             if (!Number.isInteger(quantity) || quantity < 1 || quantity > 100) return;
             const codes = getOrderedPackages(quantity);
+            const renderKey=JSON.stringify([currentLanguage,document.getElementById('plan_type').value,codes,[...selectedAddons].map(([i,v])=>[i,[...v]])]);
+            if(renderKey===addonRenderKey) return;
+            addonRenderKey=renderKey; box.replaceChildren();
             for (const key of selectedAddons.keys()) if (key >= codes.length) selectedAddons.delete(key);
             const plan = document.getElementById('plan_type').value.toUpperCase();
             codes.forEach((code,index) => {
@@ -105,6 +107,7 @@
         const styleChoiceButtons = (container) => {
             container.querySelectorAll('button').forEach(button => {
                 const active = button.dataset.value === container.dataset.value;
+                button.setAttribute('aria-pressed',String(active));
                 button.style.borderColor = active ? 'var(--brand-primary)' : '#e5e7eb';
                 button.style.backgroundColor = active ? 'var(--brand-bg)' : '#fff';
                 button.style.color = active ? 'var(--brand-text)' : '#374151';
@@ -267,6 +270,7 @@
             document.getElementById('ticket-instructions').textContent=ft.ticketInstructions;
             document.getElementById('district-optional-label').textContent=ft.districtOptional;
             document.getElementById('summary-addon-label').textContent=currentLanguage==='kh'?'បន្ថែមមុខម្ហូប':'Add-ons';
+            document.getElementById('ticket-modal-title').textContent=currentLanguage==='kh'?'បង្កាន់ដៃកម្ម៉ង់':'Order Ticket';
             const quoteRetryBtn=document.getElementById('quote-retry-btn');
             if(quoteRetryBtn) quoteRetryBtn.textContent=currentLanguage==='kh'?'ព្យាយាមម្ដងទៀត':'Try again';
             updateTicketControlLanguage();
@@ -361,6 +365,7 @@
 
         const renderAdditionalPackages = (qty) => {
             const container = document.getElementById('additional-packages-container');
+            const previous=[...container.querySelectorAll('select')].map(el=>el.value);
             container.innerHTML = '';
 
             const extrasNeeded = Math.min(100, Math.max(1, qty)) - 1;
@@ -379,6 +384,7 @@
 
                 const select = document.createElement('select');
                 select.className = "w-full p-2 text-sm form-select additional-pkg-select bg-white border border-gray-300 rounded";
+                select.id=`additional-package-${i+2}`; label.htmlFor=select.id;
                 select.onchange = updatePriceSummary;
 
                 options.forEach(opt => {
@@ -390,6 +396,7 @@
                     select.appendChild(optionEl);
                 });
 
+                select.value=previous[i] || document.getElementById('package').value;
                 wrapper.appendChild(label);
                 wrapper.appendChild(select);
                 container.appendChild(wrapper);
@@ -455,10 +462,13 @@
         const setLanguage = (lang) => {
             if (!translations[lang]) return;
             const previousLanguage=currentLanguage;
+            const deliveryTime=document.getElementById('time_slot').value;
             const districtIndex=DATA[previousLanguage].districts.indexOf(document.getElementById('district').value);
             const communeIndex=(DATA[previousLanguage].communes[document.getElementById('district').value]||[]).indexOf(document.getElementById('commune').value);
             const pickupIndex=DATA[previousLanguage].pickup_times.indexOf(document.getElementById('pickup_time').value);
             currentLanguage = lang;
+            document.getElementById('customer_name').setAttribute('aria-label',CheckoutAPI.labels[lang].name);
+            document.getElementById('phone').setAttribute('aria-label',CheckoutAPI.labels[lang].phone);
             document.documentElement.lang=lang==='kh'?'km':'en';
             const t = translations[lang];
 
@@ -508,6 +518,7 @@
             if(communeIndex>=0)document.getElementById('commune').value=DATA[lang].communes[districtSelect.value]?.[communeIndex] || '';
 
             populateSelect('time_slot', ['8:00 AM - 10:00 AM', '10:00 AM - 12:00 PM', '3:00 PM - 5:00 PM', '4:00 PM - 6:00 PM']);
+            if(deliveryTime)document.getElementById('time_slot').value=deliveryTime;
             populateSelect('pickup_time', DATA[lang].pickup_times);
             if(pickupIndex>=0)document.getElementById('pickup_time').value=DATA[lang].pickup_times[pickupIndex];
 
@@ -518,16 +529,7 @@
             refreshCheckoutState();
 
             const modal = document.getElementById('ticket-modal');
-            if (modal && !modal.classList.contains('hidden')) {
-                const formData = getFormData('meal-order-form');
-                const ticketCardHtml = generateTicketCardHTML(formData);
-                const ticketCardDiv = document.getElementById('ticket-card');
-                if(ticketCardDiv) ticketCardDiv.innerHTML = ticketCardHtml;
-                const ticketTextArea = document.getElementById('ticket-text-area');
-                if(ticketTextArea) ticketTextArea.value = generateTicketPlainText(formData);
-                generateQRCodes();
-                renderOrderQrCode(`https://t.me/${ADMIN_USERNAME}?text=${encodeURIComponent(buildOrderQrPayload())}`);
-            }
+            if (modal && !modal.classList.contains('hidden')) displayReceipt();
 
             const nutBtnText = document.getElementById('btn-nutrition-text');
             if (nutBtnText && window.NUTRITION_DATA) {
@@ -652,65 +654,19 @@
         };
 
         const showMenuImage = () => {
-            const pkgSelect = document.getElementById('package');
-            if (!pkgSelect) return;
-            const pkg = pkgSelect.value;
-            const loader = document.getElementById('menu-image-loader');
-            const imgEl = document.getElementById('menu-image');
-            const errEl = document.getElementById('menu-image-error');
-            const t = translations[currentLanguage];
-
-            if (!loader || !imgEl || !errEl) return;
-            imgEl.loading = 'lazy';
-            imgEl.decoding = 'async';
-
-            loader.style.display = 'flex';
-            loader.textContent = t.menu_loading;
-            imgEl.style.display = 'none';
-            errEl.style.display = 'none';
-
-            const s3_bucket_name = "vearuny-kitchen-menus";
-            const aws_region = "ap-southeast-2";
-
-            const imageName = currentLanguage === 'kh' ? pkg.toLowerCase() : pkg.toUpperCase();
-            const imageUrl = `assets/menus/${imageName}.jpg`;
-
-            const cached = menuImageCache.get(imageUrl);
-            if (cached) { imgEl.src = cached; loader.style.display = 'none'; imgEl.style.display = 'block'; return; }
-            const img = new Image();
-            img.decoding = 'async';
-            img.loading = 'lazy';
-            img.src = imageUrl;
-            img.alt = `Menu for Package ${pkg}`;
-
-            img.onload = () => {
-                imgEl.src = imageUrl;
-                menuImageCache.set(imageUrl, imageUrl);
-                loader.style.display = 'none';
-                imgEl.style.display = 'block';
-                errEl.style.display = 'none';
-            };
-
-            img.onerror = () => {
-                const fallbackImageName = currentLanguage === 'kh' ? pkg.toUpperCase() : pkg.toLowerCase();
-                const fallbackUrl = `assets/menus/${fallbackImageName}.jpg`;
-                const fallbackImg = new Image();
-                fallbackImg.src = fallbackUrl;
-
-                fallbackImg.onload = () => {
-                    imgEl.src = fallbackUrl;
-                    menuImageCache.set(imageUrl, fallbackUrl);
-                    loader.style.display = 'none';
-                    imgEl.style.display = 'block';
-                    errEl.style.display = 'none';
-                };
-                fallbackImg.onerror = () => {
-                    errEl.textContent = t.menu_unavailable;
-                    loader.style.display = 'none';
-                    imgEl.style.display = 'none';
-                    errEl.style.display = 'flex';
-                };
-            };
+            const pkg=document.getElementById('package')?.value;
+            const img=document.getElementById('menu-image');
+            if(!pkg || !img) return;
+            const url=`assets/menus/${currentLanguage==='kh'?pkg.toLowerCase():pkg}.jpg`;
+            img.alt=currentLanguage==='kh'?`ម៉ឺនុយឈុត ${pkg}`:`Menu for package ${pkg}`;
+            if(img.dataset.menu===url) return;
+            img.dataset.menu=url; img.loading='lazy'; img.decoding='async';
+            const loader=document.getElementById('menu-image-loader'), error=document.getElementById('menu-image-error');
+            loader.style.display='flex';loader.textContent=translations[currentLanguage].menu_loading;
+            error.style.display='none';img.style.display='block';img.classList.remove('hidden');
+            img.onload=()=>{loader.style.display='none';error.style.display='none';};
+            img.onerror=()=>{loader.style.display='none';error.style.display='flex';error.textContent=translations[currentLanguage].menu_unavailable;};
+            img.src=url;
         };
 
         const catalogPrice = (plan, code) => {
@@ -722,11 +678,17 @@
         let latestQuote = null;
         let quoteLoading = false;
         let quoteError = false;
+        let currentQuoteKey = '';
+        const pricingKey=()=>{
+            const quantity=Number(document.getElementById('quantity').value);
+            const codes=getOrderedPackages(Number.isInteger(quantity)&&quantity>0&&quantity<=100?quantity:1);
+            return JSON.stringify([document.getElementById('plan_type').value,quantity,codes.map((code,index)=>[code,[...(selectedAddons.get(index)||[])].sort((a,b)=>a-b)]),document.getElementById('subscriber_type').value,document.querySelector('input[name=method]:checked')?.value]);
+        };
         const money = value => `$${Number(value || 0).toFixed(2)}`;
         const setQuoteLoading = loading => {
             quoteLoading=loading;
             const state=document.getElementById('quote-state');
-            if(state) { state.textContent=loading ? (currentLanguage==='kh'?'កំពុងគណនាតម្លៃ…':'Calculating…') : ''; state.classList.toggle('is-loading',loading); }
+            if(state) { state.textContent=loading ? (currentLanguage==='kh'?'កំពុងគណនាតម្លៃ…':'Calculating…') : quoteError ? (currentLanguage==='kh'?'មិនអាចគណនាតម្លៃបាន សូមព្យាយាមម្ដងទៀត':'Unable to calculate the price. Please try again.') : ''; state.classList.toggle('is-loading',loading); }
             refreshCheckoutState();
         };
         const renderQuote = quote => {
@@ -742,21 +704,20 @@
             document.getElementById('delivery-cost-row').style.display='flex';
             document.getElementById('quote-retry-btn').hidden=true;
             const breakdown=document.getElementById('summary-breakdown');
-            if(breakdown) breakdown.innerHTML=quote.items.map((item,itemIndex)=>`<div class="quote-item"><div><strong>${escapeHTML(item.package_code)} × ${item.quantity}</strong><span>${escapeHTML(item.package_name || '')}</span></div><strong>${money(item.base_amount)}</strong>${item.addons.map(addon=>`<div class="quote-addon"><span>＋ ${escapeHTML(addon.name)} × ${addon.billable_meal_count}</span><span>${money(addon.total_amount)}</span></div>`).join('')}</div>`).join('');
-            quote.items.forEach((item,itemIndex)=>item.addons.forEach(addon=>{
-                const effective=document.querySelector(`.addon-effective[data-item="${itemIndex}"][data-addon="${addon.id}"]`);
-                if(effective) effective.textContent=`+${money(addon.total_amount)}`;
-            }));
+            if(breakdown) breakdown.innerHTML=quote.items.map((item,itemIndex)=>`<div class="quote-item"><div><strong>${escapeHTML(item.package_code)} × ${item.quantity}</strong><span>${escapeHTML(PACKAGE_NAMES[currentLanguage][item.package_code] || item.package_name || '')}</span></div><strong>${money(item.base_amount)}</strong>${item.addons.map(addon=>`<div class="quote-addon"><span>＋ ${escapeHTML(ADD_ON_NAMES[addon.code || catalog?.addons.find(a=>a.id===addon.id)?.code]?.[currentLanguage] || addon.name)} × ${addon.billable_meal_count || ''}</span><span>${money(addon.total_amount)}</span></div>`).join('')}</div>`).join('');
+            // Server items may group equal sets: never map grouped index to form set index.
+            document.querySelectorAll('.addon-effective').forEach(el=>{el.textContent='';});
             refreshCheckoutState();
         };
         const requestQuote = () => {
             if(!checkoutClient || !catalog || checkoutClient.attempt?.receipt) return;
             clearTimeout(quoteTimer);
+            const sequence=++quoteSequence;
+            setQuoteLoading(true);
             quoteTimer=setTimeout(async()=>{
-                const sequence=++quoteSequence;
                 try {
                     const form=getFormData('meal-order-form'), quantity=Number(form.quantity);
-                    if(!Number.isInteger(quantity)||quantity<1||quantity>100) return;
+                    if(!Number.isInteger(quantity)||quantity<1||quantity>100) throw new Error('Invalid quantity');
                     const sets=getOrderedPackages(quantity).map((code,index)=>({code,addons:[...(selectedAddons.get(index)||[])].sort((a,b)=>a-b)}));
                     const payload=CheckoutAPI.buildPayload(catalog,form,sets,currentLanguage,{quote:true});
                     setQuoteLoading(true);
@@ -765,7 +726,7 @@
                 } catch(error) {
                     if(sequence===quoteSequence) {
                         latestQuote=null; quoteError=true;
-                        document.getElementById('summary-total-cost').textContent='$0.00';
+                        document.getElementById('summary-total-cost').textContent='—';
                         document.getElementById('quote-state').textContent=currentLanguage==='kh'?'មិនអាចគណនាតម្លៃបាន សូមព្យាយាមម្ដងទៀត':'Unable to calculate the price. Please try again.';
                         document.getElementById('quote-retry-btn').textContent=currentLanguage==='kh'?'ព្យាយាមម្ដងទៀត':'Try again';
                         document.getElementById('quote-retry-btn').hidden=false;
@@ -775,6 +736,14 @@
             },250);
         };
         const updatePriceSummary = () => {
+            if(receipt()) { renderQuote({...receipt().order,items:receipt().items}); return; }
+            const key=pricingKey();
+            if(key===currentQuoteKey && (latestQuote || quoteLoading)) {
+                renderAddons();
+                if(latestQuote)renderQuote(latestQuote);
+                return;
+            }
+            currentQuoteKey=key;
             const plan = document.getElementById('plan_type').value;
             const quantity = Number(document.getElementById('quantity').value);
             let base = null;
@@ -784,7 +753,8 @@
             document.getElementById('summary-package-cost').textContent = base===null?'$0.00':`$${base.toFixed(2)}`;
             latestQuote=null;
             quoteError=false;
-            document.getElementById('summary-total-cost').textContent = '$0.00';
+            document.getElementById('summary-total-cost').textContent = '—';
+            document.getElementById('summary-breakdown').replaceChildren();
             document.getElementById('total-meal-info').textContent = currentLanguage==='kh'?'តម្លៃសរុបរបស់អ្នក':'Order Summary';
             for (const id of ['delivery-fee-note','promo-status']) document.getElementById(id).style.display='none';
             document.getElementById('addon-cost-row').style.display='flex';
@@ -805,12 +775,13 @@
             const locked = Boolean(attempt && !attempt.rejected);
             const form = document.getElementById('meal-order-form');
             form.querySelectorAll('input,select,textarea,button').forEach(el => {
-                if (el.id==='generate-ticket-btn' || el.id==='new-order-btn') return;
+                if (['generate-ticket-btn','new-order-btn','receipt-open-btn'].includes(el.id)) return;
                 if (locked) { if (!el.disabled) {el.dataset.checkoutLocked='1'; el.disabled=true;} }
                 else if(el.dataset.checkoutLocked) {el.disabled=false; delete el.dataset.checkoutLocked;}
             });
             const button = document.getElementById('generate-ticket-btn');
-            button.disabled=!checkoutClient || checkoutClient.pending || quoteLoading || quoteError || !latestQuote || (!catalog && !attempt) || Boolean(attempt?.receipt);
+            button.disabled=!checkoutClient || checkoutClient.pending || Boolean(attempt?.receipt) || (!(attempt && !attempt.rejected) && (quoteLoading || quoteError || !latestQuote || !catalog));
+            button.hidden=Boolean(attempt?.receipt);
             button.textContent=checkoutClient?.pending?apiText().loading:attempt&&!attempt.rejected?apiText().retry:apiText().create;
             button.setAttribute('aria-busy',String(Boolean(checkoutClient?.pending)));
             const reset = document.getElementById('new-order-btn');
@@ -820,7 +791,7 @@
             if(actions) actions.hidden=!(attempt?.receipt || attempt?.rejected);
             const view=document.getElementById('receipt-open-btn');
             if(view) { const viewLabel=view.querySelector('span'); if(viewLabel) viewLabel.textContent=currentLanguage==='kh'?'មើលបង្កាន់ដៃ':'View Ticket'; else view.textContent=currentLanguage==='kh'?'មើលបង្កាន់ដៃ':'View Ticket'; }
-            document.getElementById('ticket-instructions').textContent=apiText().created;
+            document.getElementById('ticket-instructions').textContent=currentLanguage==='kh'?'រក្សាទុកបង្កាន់ដៃនេះសម្រាប់កម្ម៉ង់របស់អ្នក។':'Keep this ticket for your order.';
         };
         let restoredAttempt = false;
         const restoreAttemptForm = () => {
@@ -852,6 +823,21 @@
             value(order.fulfillment_method==='pickup'?'pickup_time':'time_slot',order.fulfillment_time);
             syncFocusJuiceFromPackage();handleSubscriberTypeChange();toggleMethodFields();refreshFriendlyLanguage();
         };
+        const startNewOrder = () => {
+            checkoutClient.reset(); restoredAttempt=false; clearTimeout(quoteTimer); ++quoteSequence;
+            latestQuote=null;quoteLoading=false;quoteError=false;currentQuoteKey='';
+            selectedAddons.clear();addonRenderKey='';
+            closeTicket();document.getElementById('meal-order-form').reset();
+            document.getElementById('ticket-card').replaceChildren();
+            document.getElementById('ticket-text-area').value='';
+            document.getElementById('additional-packages-container').replaceChildren();
+            handleQuantityChange();syncFocusJuiceFromPackage();handleSubscriberTypeChange();toggleMethodFields();
+            setMinStartDate();refreshFriendlyLanguage();showMenuImage();refreshCheckoutState();updatePriceSummary();showAlert('');
+            document.querySelectorAll('[id$="-buttons"]').forEach(box=>{const select=document.getElementById(box.id.replace(/-buttons$/,''));if(select){box.dataset.value=select.value;styleChoiceButtons(box);}});
+            document.querySelectorAll('#remark-quick-options button,.quick-date-btn,#quantity-buttons button').forEach(b=>b.style.boxShadow='none');
+            window.scrollTo({top:0,behavior:'smooth'});
+        };
+
         const loadCatalog = async () => {
             if (catalogLoading) return;
             catalogLoading=true;
@@ -990,28 +976,33 @@
         // Keep the Telegram payload compact. Long t.me URLs are unreliable on some mobile browsers.
         const generateTicketPlainText = () => CheckoutAPI.receiptLines(receipt(), currentLanguage).map(([key,value])=>`${key}: ${value}`).join('\n');
         const generateTicketCardHTML = () => {
-            const saved = receipt(); if (!saved?.order) return '';
-            const o=saved.order, kh=currentLanguage==='kh';
-            const date=value=>{const m=String(value??'').match(/^(\d{4})-(\d{2})-(\d{2})/);if(!m)return value||'';const months=kh?['មករា','កុម្ភៈ','មីនា','មេសា','ឧសភា','មិថុនា','កក្កដា','សីហា','កញ្ញា','តុលា','វិច្ឆិកា','ធ្នូ']:['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];return `${m[3]} ${months[Number(m[2])-1]} ${m[1]}`;};
-            const method=o.fulfillment_method==='pickup'?(kh?'មកយក':'Pickup'):(kh?'ដឹកជញ្ជូន':'Delivery');
-            const packageLines=saved.items.map(i=>`<div class="ticket-item"><span>${escapeHTML(i.package_code)} × ${i.quantity}</span><strong>${escapeHTML(i.package_name||'')}</strong></div>`).join('');
-            const addonSummary=saved.items.flatMap(i=>i.addons||[]).map(a=>`${a.name} × ${a.quantity||1}`).join(', ');
-            const details=[
-                [kh?'អាសយដ្ឋាន':'Address',o.fulfillment_method==='pickup'?(kh?'ផ្ទះបាយវារុណី':'Vearuny Kitchen'):[o.district,o.commune,o.address].filter(Boolean).join(', ')],
-                [kh?'ប្រភេទអតិថិជន':'Subscriber',o.subscriber_type],
-                [kh?'លេខជាវពីមុន':'Previous subscription',o.previous_subscription_number],
-                [kh?'ចំណាំ':'Remarks',o.customer_remarks],
-                [kh?'ចំណាំអាហារូបត្ថម្ភ':'Nutrition notes',o.nutrition_notes]
-            ].filter(([,v])=>v);
-            const more=kh?'ព័ត៌មានបន្ថែម':'More details';
-            return `<div class="ticket-flipper"><section class="ticket-face ticket-front"><div class="boarding-pass-layout"><div class="boarding-main receipt-polished"><header class="receipt-header"><img src="graylogo.png" alt="Vearuny" class="receipt-logo"><span class="receipt-status">${kh?'មិនទាន់បង់ប្រាក់':'Pending payment'}</span><h3>${escapeHTML(o.order_code)}</h3></header><section><div class="ticket-section-title">${kh?'ព័ត៌មានកម្ម៉ង់':'Order details'}</div>${packageLines}<div class="ticket-item"><span>${kh?'ថ្ងៃចាប់ផ្តើម':'Start date'}</span><strong>${escapeHTML(date(o.start_date))}</strong></div><div class="ticket-item"><span>${escapeHTML(apiText().method)}</span><strong>${escapeHTML(method)}</strong></div><div class="ticket-item"><span>${escapeHTML(apiText().time)}</span><strong>${escapeHTML(date(o.fulfillment_time))}</strong></div><div class="ticket-item"><span>${escapeHTML(apiText().name)}</span><strong>${escapeHTML(saved.customer?.name||'')}</strong></div></section><section><div class="ticket-section-title">${kh?'សរុបតម្លៃ':'Price summary'}</div><div class="ticket-item"><span>${kh?'តម្លៃឈុត':'Packages'}</span><strong>${money(o.base_amount)} ${o.currency||'USD'}</strong></div><div class="ticket-item"><span>${escapeHTML(apiText().addons)}</span><strong>${money(o.addon_total)} ${o.currency||'USD'}</strong></div><div class="ticket-item"><span>${escapeHTML(apiText().discount)}</span><strong>−${money(o.discount_amount)} ${o.currency||'USD'}</strong></div><div class="ticket-item"><span>${escapeHTML(apiText().delivery)}</span><strong>${money(o.delivery_fee)} ${o.currency||'USD'}</strong></div><div class="ticket-total"><span>${escapeHTML(apiText().total)}</span><strong>${money(o.total_amount)} ${o.currency||'USD'}</strong></div></section>${addonSummary?`<p class="receipt-addon-summary">${escapeHTML(addonSummary)}</p>`:''}<details class="receipt-more"><summary>${more}</summary>${details.map(([k,v])=>`<div class="ticket-item"><span>${escapeHTML(k)}</span><strong>${escapeHTML(v)}</strong></div>`).join('')}</details><section class="receipt-payment"><h4>${kh?'ការទូទាត់':'Payment'}</h4><p>${escapeHTML(translations[currentLanguage].payment_instructions || (kh?'សូមទូទាត់តាម PayWay':'Please pay using PayWay'))}</p><div class="payment-qr-selector" role="tablist" aria-label="PayWay currency"><button type="button" class="qr-currency-btn is-active" data-currency="usd" role="tab">USD</button><button type="button" class="qr-currency-btn" data-currency="khr" role="tab">KHR</button></div><div class="payment-qr-display"><div id="qrcode-usd"></div><div id="qrcode-khr" hidden></div></div><a id="payway-link" class="payway-link" href="${PAYWAY_USD_LINK}" target="_blank" rel="noopener">${kh?'បើក PayWay USD':'Open PayWay USD'}</a></section></div></div></section><section class="ticket-face ticket-back"><div class="qr-ticket-brand"><img class="qr-ticket-logo" src="graylogo.png" alt="Vearuny"></div><h3>${escapeHTML(FRIENDLY_TEXT[currentLanguage].qrTitle)}</h3><div id="order-qr-code" class="order-qr-code"></div><p>${escapeHTML(o.order_code)}</p><p>${escapeHTML(FRIENDLY_TEXT[currentLanguage].qrHelp)}</p></section></div>`;
+            const saved=receipt();if(!saved?.order)return '';
+            const o=saved.order,kh=currentLanguage==='kh',t=apiText();
+            const row=(label,value)=>`<div class="ticket-item"><span>${escapeHTML(label)}</span><strong>${escapeHTML(value)}</strong></div>`;
+            const date=value=>{const m=String(value??'').match(/^(\d{4})-(\d{2})-(\d{2})/);return m?formatDate(`${m[1]}-${m[2]}-${m[3]}`):value||'';};
+            const addonName=a=>ADD_ON_NAMES[a.code || catalog?.addons.find(x=>x.id===a.id || x.name===a.name)?.code]?.[currentLanguage] || a.name;
+            const subscriber={new:kh?'អតិថិជនថ្មី':'New subscriber',old:kh?'អតិថិជនចាស់':'Returning subscriber',none:'—'}[o.subscriber_type] || '—';
+            const essentials=row(kh?'គម្រោង':'Plan',saved.plan.code==='MONTHLY'?(kh?'ប្រចាំខែ':'Monthly'):(kh?'ប្រចាំសប្ដាហ៍':'Weekly'))+
+                saved.items.map(i=>row(`${kh?'ឈុត':'Package'} ${i.package_code} × ${i.quantity}`,PACKAGE_NAMES[currentLanguage][i.package_code] || i.package_name || '')).join('')+
+                row(kh?'ចំនួនសរុប':'Total quantity',saved.items.reduce((n,i)=>n+Number(i.quantity),0))+
+                row(t.start,date(o.start_date))+row(t.method,o.fulfillment_method==='pickup'?t.pickup:t.deliveryMethod)+row(t.time,o.fulfillment_time)+row(t.name,saved.customer?.name);
+            const details=[[t.address,o.fulfillment_method==='pickup'?(kh?'ផ្ទះបាយវារុណី':'Vearuny Kitchen'):[o.district,o.commune,o.address].filter(Boolean).join(', ')],
+                [t.phone,saved.customer?.phone],[t.subscriber,subscriber],[t.previous,o.previous_subscription_number],[t.remarks,o.customer_remarks],[t.notes,o.nutrition_notes]];
+            const detailHTML=details.filter(([,v])=>v).map(([k,v])=>row(k,v)).join('')+saved.items.map(i=>(i.addons||[]).map(a=>row(`${i.package_code} × ${i.quantity} · ${addonName(a)}`,money(a.total_amount))).join('')).join('');
+            return `<div class="ticket-flipper"><section class="ticket-face ticket-front"><div class="boarding-pass-layout"><div class="boarding-main receipt-polished">
+                <header class="receipt-header"><img src="graylogo.png" alt="Vearuny" class="receipt-logo"><span class="receipt-status">${kh?'មិនទាន់បង់ប្រាក់':'Pending Payment'}</span><h3>${escapeHTML(o.order_code)}</h3></header>
+                <section><div class="ticket-section-title">${kh?'ព័ត៌មានកម្ម៉ង់':'Order details'}</div>${essentials}</section>
+                <section><div class="ticket-section-title">${kh?'សរុបតម្លៃ':'Price summary'}</div>${row(t.base,money(o.base_amount))}${row(t.addons,money(o.addon_total))}${row(t.discount,`−${money(o.discount_amount)} (${Number(o.discount_percentage)||0}%)`)}${row(t.delivery,money(o.delivery_fee))}<div class="ticket-total"><span>${escapeHTML(t.total)}</span><strong>${money(o.total_amount)} ${escapeHTML(o.currency||'USD')}</strong></div></section>
+                <section class="receipt-payment"><h4>${kh?'ការទូទាត់':'Payment'}</h4><p>${kh?'ជ្រើសរើសរូបិយប័ណ្ណ រួចស្កេន QR ឬបើក PayWay។':'Choose a currency, then scan the QR or open PayWay.'}</p><div class="payment-qr-selector" role="group" aria-label="${kh?'រូបិយប័ណ្ណទូទាត់':'Payment currency'}"><button type="button" class="qr-currency-btn is-active" data-currency="usd">USD</button><button type="button" class="qr-currency-btn" data-currency="khr">KHR</button></div><div class="payment-qr-display"><div id="qrcode-usd"></div><div id="qrcode-khr" hidden></div></div><a id="payway-link" class="payway-link" href="${PAYWAY_USD_LINK}" target="_blank" rel="noopener">${kh?'បើក PayWay USD':'Open PayWay USD'}</a></section>
+                <details class="receipt-more"><summary>${kh?'ព័ត៌មានបន្ថែម':'More Details'}</summary>${detailHTML}</details></div></div></section>
+                <section class="ticket-face ticket-back"><div class="qr-ticket-brand"><img class="qr-ticket-logo" src="graylogo.png" alt="Vearuny"></div><h3>${escapeHTML(FRIENDLY_TEXT[currentLanguage].qrTitle)}</h3><div id="order-qr-code" class="order-qr-code"></div><p>${escapeHTML(o.order_code)}</p><p>${escapeHTML(FRIENDLY_TEXT[currentLanguage].qrHelp)}</p></section></div>`;
         };
 
         const setPaymentQr = currency => {
             const usd=document.getElementById('qrcode-usd'), khr=document.getElementById('qrcode-khr'), link=document.getElementById('payway-link');
             if(!usd||!khr||!link)return;
             const isUsd=currency!=='khr'; usd.hidden=!isUsd; khr.hidden=isUsd;
-            document.querySelectorAll('.qr-currency-btn').forEach(button=>{const active=(button.dataset.currency===(isUsd?'usd':'khr'));button.classList.toggle('is-active',active);button.setAttribute('aria-selected',String(active));});
+            document.querySelectorAll('.qr-currency-btn').forEach(button=>{const active=(button.dataset.currency===(isUsd?'usd':'khr'));button.classList.toggle('is-active',active);button.setAttribute('aria-pressed',String(active));});
             link.href=isUsd?PAYWAY_USD_LINK:PAYWAY_KHR_LINK;
             link.textContent=currentLanguage==='kh'?(isUsd?'បើក PayWay USD':'បើក PayWay KHR'):(isUsd?'Open PayWay USD':'Open PayWay KHR');
         };
@@ -1032,7 +1023,7 @@
                     document.execCommand('copy');
                 }
                 statusP.textContent = currentLanguage === 'kh'
-                    ? 'បាន កូពី សូម Past ក្នុង Telegram ឬ Messenger។'
+                    ? 'បានចម្លងព័ត៌មានកម្ម៉ង់។ អ្នកអាចបិទភ្ជាប់ក្នុង Telegram ឬ Messenger។'
                     : 'Order summary copied. Paste it in Telegram or Messenger.';
                 return true;
             } catch (err) {
@@ -1096,7 +1087,7 @@
             if(copy){copy.setAttribute('aria-label',isKh?'ចម្លងព័ត៌មានការកុម្ម៉ង់':'Copy order information');copy.title=copy.getAttribute('aria-label');}
             if(download){download.setAttribute('aria-label',isKh?'ទាញយកសំបុត្រ QR':'Download QR ticket');download.title=download.getAttribute('aria-label');}
             if(close){close.setAttribute('aria-label',isKh?'បិទ':'Close');close.title=close.getAttribute('aria-label');}
-            if(receiptButton) receiptButton.textContent=isKh?'មើលបង្កាន់ដៃ':'View receipt';
+            if(receiptButton) (receiptButton.querySelector('span') || receiptButton).textContent=isKh?'មើលបង្កាន់ដៃ':'View Ticket';
         };
 
         const setTicketSide = (showQr) => {
@@ -1104,6 +1095,9 @@
             const download=document.getElementById('download-qr-ticket-btn');
             if(!card) return;
             card.classList.toggle('is-flipped',showQr);
+            const front=card.querySelector('.ticket-front'),back=card.querySelector('.ticket-back');
+            if(front){front.inert=showQr;front.setAttribute('aria-hidden',String(showQr));}
+            if(back){back.inert=!showQr;back.setAttribute('aria-hidden',String(!showQr));}
             if(download) download.classList.toggle('hidden',!showQr);
             document.querySelectorAll('#ticket-side-indicator .ticket-side-dot').forEach((dot,index)=>dot.classList.toggle('is-active',index===(showQr?1:0)));
             updateTicketControlLanguage();
@@ -1114,7 +1108,7 @@
             if(!card || card.dataset.swipeReady) return;
             card.dataset.swipeReady='true';
             let startX=0,startY=0,tracking=false;
-            card.addEventListener('pointerdown',event=>{startX=event.clientX;startY=event.clientY;tracking=true;card.setPointerCapture?.(event.pointerId);});
+            card.addEventListener('pointerdown',event=>{if(event.target.closest('button,a,summary,details'))return;startX=event.clientX;startY=event.clientY;tracking=true;card.setPointerCapture?.(event.pointerId);});
             card.addEventListener('pointerup',event=>{if(!tracking)return;tracking=false;const dx=event.clientX-startX;const dy=event.clientY-startY;if(Math.abs(dx)>45&&Math.abs(dx)>Math.abs(dy))setTicketSide(dx<0);});
             card.addEventListener('pointercancel',()=>{tracking=false;});
             card.addEventListener('keydown',event=>{if(event.key==='ArrowLeft'){event.preventDefault();setTicketSide(true);}else if(event.key==='ArrowRight'){event.preventDefault();setTicketSide(false);}});
@@ -1140,13 +1134,21 @@
             }
         };
 
+        let ticketReturnFocus=null;
+        const closeTicket=()=>{document.getElementById('ticket-modal').classList.add('hidden');document.body.style.overflow='';document.getElementById('meal-order-form').inert=false;const focus=ticketReturnFocus&&!ticketReturnFocus.disabled&&!ticketReturnFocus.hidden?ticketReturnFocus:document.getElementById('receipt-open-btn');focus?.focus?.();};
         const displayReceipt = () => {
+            clearTimeout(quoteTimer);++quoteSequence;quoteLoading=false;quoteError=false;
+            renderQuote({...receipt().order,items:receipt().items});
+            if(document.getElementById('ticket-modal').classList.contains('hidden'))ticketReturnFocus=document.activeElement;
             document.getElementById('ticket-card').innerHTML=generateTicketCardHTML();
             document.getElementById('ticket-text-area').value=generateTicketPlainText();
             setTicketSide(false);
             document.getElementById('ticket-modal').classList.remove('hidden');
             document.querySelectorAll('.qr-currency-btn').forEach(button=>button.onclick=()=>setPaymentQr(button.dataset.currency));
             setPaymentQr('usd');
+            document.body.style.overflow='hidden';
+            document.getElementById('meal-order-form').inert=true;
+            document.getElementById('close-ticket-modal-btn').focus();
             generateQRCodes();
             requestAnimationFrame(()=>renderOrderQrCode(`https://t.me/${ADMIN_USERNAME}?text=${encodeURIComponent(buildOrderQrPayload())}`));
             document.getElementById('send-status').textContent=receipt()?.replayed?(currentLanguage==='kh'?'បានទទួលកម្ម៉ង់ដដែលវិញ':'Existing order recovered; no duplicate created.'):'';
@@ -1158,6 +1160,7 @@
             try {
                 let payload;
                 if (!checkoutClient.attempt || checkoutClient.attempt.rejected) {
+                    if(quoteLoading || quoteError || !latestQuote) {showAlert(currentLanguage==='kh'?'សូមរង់ចាំតម្លៃសរុប។':'Please wait for your price summary.');return;}
                     if (!validateForm('meal-order-form')) return;
                     const form=getFormData('meal-order-form');
                     const quantity=Number(form.quantity);
@@ -1402,10 +1405,10 @@
                 toggleMethodFields();
                 updatePriceSummary();
                 updatePlanNotesVisibility();
-                try { checkoutClient=CheckoutAPI.createClient({storage:sessionStorage}); }
+                try { let catalogStorage;try{catalogStorage=localStorage;}catch{} checkoutClient=CheckoutAPI.createClient({storage:sessionStorage,catalogStorage}); }
                 catch { showAlert(currentLanguage==='kh'?'មិនអាចអានកម្ម៉ង់ដែលរក្សាទុកបាន។ សូមទាក់ទងផ្ទះបាយ។':'Saved checkout storage is unavailable. Restore browser storage before ordering.'); }
                 document.getElementById('catalog-retry-btn').onclick=loadCatalog;
-                document.getElementById('new-order-btn').onclick=()=>{checkoutClient.reset();restoredAttempt=false;document.getElementById('ticket-modal').classList.add('hidden');refreshCheckoutState();updatePriceSummary();showAlert('');window.scrollTo({top:0,behavior:'smooth'});};
+                document.getElementById('new-order-btn').onclick=startNewOrder;
                 document.getElementById('receipt-open-btn').onclick=()=>{if(receipt())displayReceipt();};
                 if(checkoutClient) {loadCatalog();if(receipt())displayReceipt();}
 
@@ -1491,7 +1494,7 @@
                 if (closeTicketModalBtn) {
                     closeTicketModalBtn.addEventListener('click', () => {
                         const modal = document.getElementById('ticket-modal');
-                        if (modal) modal.classList.add('hidden');
+                        if (modal) closeTicket();
                          document.getElementById('send-status').textContent = '';
                     });
                 }
@@ -1514,6 +1517,10 @@
                 const downloadQrBtn = document.getElementById('download-qr-ticket-btn');
                 if (downloadQrBtn) downloadQrBtn.addEventListener('click', downloadQrTicket);
                 enableTicketSwipe();
+                document.getElementById('ticket-modal').addEventListener('keydown',event=>{
+                    if(event.key==='Escape'){event.preventDefault();closeTicket();}
+                    if(event.key==='Tab'){const nodes=[...event.currentTarget.querySelectorAll('button,a[href],summary,[tabindex="0"]')].filter(el=>!el.disabled&&el.getClientRects().length&&!el.closest('[inert]'));const first=nodes[0],last=nodes[nodes.length-1];if(event.shiftKey&&document.activeElement===first){event.preventDefault();last?.focus();}else if(!event.shiftKey&&document.activeElement===last){event.preventDefault();first?.focus();}}
+                });
 
             } catch (error) {
                 console.error("Initialization error:", error);

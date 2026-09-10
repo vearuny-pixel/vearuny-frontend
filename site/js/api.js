@@ -12,8 +12,8 @@
   class APIError extends Error {
     constructor(message, status = 0) { super(message); this.status = status; }
   }
-  function createClient({fetchImpl = globalThis.fetch.bind(globalThis), storage, uuid = () => globalThis.crypto.randomUUID(), timeout = 25000} = {}) {
-    let attempt = null, pending = false;
+  function createClient({fetchImpl = globalThis.fetch.bind(globalThis), storage, catalogStorage = storage, uuid = () => globalThis.crypto.randomUUID(), timeout = 25000} = {}) {
+    let attempt = null, pending = false, catalogRequest = null;
     // Fail closed if storage is corrupt/unavailable. Never silently lose a retry identity.
     if (storage) { const saved = storage.getItem(STORAGE_KEY); if (saved) attempt = JSON.parse(saved); }
     const save = () => { if (storage) storage.setItem(STORAGE_KEY, JSON.stringify(attempt)); };
@@ -38,24 +38,26 @@
     return {
       get attempt() { return attempt; }, get pending() { return pending; }, request,
       async catalog() {
-        if (this._catalogCache && Date.now() - this._catalogCacheAt < CATALOG_CACHE_TTL) return this._catalogCache;
-        if (storage) {
-          try {
-            const savedCatalog = JSON.parse(storage.getItem(CATALOG_CACHE_KEY) || 'null');
-            if (savedCatalog && savedCatalog.savedAt && Date.now() - savedCatalog.savedAt < CATALOG_CACHE_TTL && savedCatalog.catalog) {
-              this._catalogCache = savedCatalog.catalog; this._catalogCacheAt = savedCatalog.savedAt; return savedCatalog.catalog;
-            }
-          } catch (_) { /* ignore stale or malformed catalog cache */ }
-        }
-        const results = await Promise.all(['/api/plans','/api/packages','/api/addons'].map(p => request(p)));
-        const catalog = {plans:results[0].data.plans, packages:results[1].data.packages, addons:results[2].data.addons};
-        if (!Array.isArray(catalog.plans) || !Array.isArray(catalog.packages) || !Array.isArray(catalog.addons)) throw new APIError('Invalid catalog response');
-        for (const code of ['X2-EGG','X2-MEAT','X2-CHICKEN','X2-SEAFOOD']) {
-          if (!catalog.addons.some(a => a.code === code && Array.isArray(a.pricing_rules))) throw new APIError('Confirmed add-on catalog unavailable');
-        }
-        this._catalogCache = catalog; this._catalogCacheAt = Date.now();
-        if (storage) { try { storage.setItem(CATALOG_CACHE_KEY, JSON.stringify({savedAt:this._catalogCacheAt,catalog})); } catch (_) {} }
-        return catalog;
+        const valid = value => value && ['plans','packages','addons'].every(k=>Array.isArray(value[k])) &&
+          ['X2-EGG','X2-MEAT','X2-CHICKEN','X2-SEAFOOD'].every(code=>value.addons.some(a=>a.code===code && Array.isArray(a.pricing_rules)));
+        const fresh = at => Number.isFinite(at) && Date.now() >= at && Date.now()-at < CATALOG_CACHE_TTL;
+        if (valid(this._catalogCache) && fresh(this._catalogCacheAt)) return this._catalogCache;
+        if (catalogRequest) return catalogRequest;
+        try {
+          const saved = JSON.parse(catalogStorage?.getItem(CATALOG_CACHE_KEY) || 'null');
+          if (saved && fresh(saved.savedAt) && valid(saved.catalog)) {
+            this._catalogCache=saved.catalog; this._catalogCacheAt=saved.savedAt; return saved.catalog;
+          }
+        } catch (_) { /* Optional cache never prevents checkout. */ }
+        catalogRequest = (async()=>{
+          const results=await Promise.all(['/api/plans','/api/packages','/api/addons'].map(p=>request(p)));
+          const catalog={plans:results[0].data.plans,packages:results[1].data.packages,addons:results[2].data.addons};
+          if (!valid(catalog)) throw new APIError('Confirmed add-on catalog unavailable');
+          this._catalogCache=catalog; this._catalogCacheAt=Date.now();
+          try { catalogStorage?.setItem(CATALOG_CACHE_KEY,JSON.stringify({savedAt:this._catalogCacheAt,catalog})); } catch (_) {}
+          return catalog;
+        })();
+        try { return await catalogRequest; } finally { catalogRequest=null; }
       },
       async quote(order) {
         const result = await request('/api/checkout/quote', order);
@@ -130,7 +132,7 @@
       district:delivery ? form.district : null, commune:delivery ? form.commune : null, address:delivery ? form.address : null,
       fulfillment_time:delivery ? form.time_slot : form.pickup_time, start_date:form.start_date,
       menu_focus:items[0].menu_focus, juice_option:items[0].juice_option,
-      subscriber_type:form.subscriber_type || 'none', previous_subscription_number:form.subscription_number || null,
+      subscriber_type:form.subscriber_type || 'none', previous_subscription_number:form.subscriber_type==='old' ? form.subscription_number || null : null,
       customer_remarks:form.remark || null, nutrition_notes:form.nutrition_notes || null, source:'web'};
     if (new TextEncoder().encode(JSON.stringify({...order,customer_id:2147483647})).length > 32000) throw new APIError('Order details are too long; shorten remarks or nutrition notes.',400);
     return {customer, order};
@@ -145,8 +147,8 @@
     if (!q || !Array.isArray(q.items) || ['base_amount','discount_amount','addon_total','delivery_fee','total_amount'].some(k => !/^\d+(\.\d{1,2})?$/.test(String(q[k])))) throw new APIError('Incomplete price response.');
   }
   const labels = {
-    en:{code:'Order code',base:'Base amount',discount:'Discount',addons:'Add-ons',delivery:'Delivery fee',total:'Total',method:'Fulfillment',time:'Time',start:'Start date',name:'Name',phone:'Phone',address:'Address',notes:'Nutrition notes',remarks:'Remarks',subscriber:'Subscriber',previous:'Previous subscription',payment:'Payment status',pickup:'Pickup',deliveryMethod:'Delivery',pending:'Order Summary',create:'Create order',retry:'Retry same order',loading:'Submitting…',catalog:'Loading menu…',newOrder:'Start another order',created:'Order created. Payment is not confirmed.',error:'Unable to complete checkout.',recovery:'Your saved order is ready to retry.',rules:'Discount rules',nutrition:'Nutrition notes (optional)'},
-    kh:{code:'លេខកូដកម្ម៉ង់',base:'តម្លៃដើម',discount:'ការបញ្ចុះតម្លៃ',addons:'បន្ថែមមុខម្ហូប',delivery:'ថ្លៃដឹកជញ្ជូន',total:'សរុប',method:'ការទទួល',time:'ម៉ោង',start:'ថ្ងៃចាប់ផ្តើម',name:'ឈ្មោះ',phone:'ទូរស័ព្ទ',address:'អាសយដ្ឋាន',notes:'ចំណាំអាហារូបត្ថម្ភ',remarks:'ចំណាំ',subscriber:'ប្រភេទអតិថិជន',previous:'លេខជាវពីមុន',payment:'ស្ថានភាពការទូទាត់',pickup:'មកយក',deliveryMethod:'ដឹកជញ្ជូន',pending:'តម្លៃសរុបរបស់អ្នក',create:'បង្កើតកម្ម៉ង់',retry:'សាកល្បងកម្ម៉ង់ដដែលម្ដងទៀត',loading:'កំពុងបញ្ជូន…',catalog:'កំពុងទាញយកម៉ឺនុយ…',newOrder:'ចាប់ផ្ដើមកម្ម៉ង់ថ្មី',created:'បានបង្កើតកម្ម៉ង់។ មិនទាន់បញ្ជាក់ការទូទាត់។',error:'មិនអាចបញ្ចប់កម្ម៉ង់បាន។',recovery:'កម្ម៉ង់ដែលបានរក្សាទុកអាចសាកល្បងម្ដងទៀត។',rules:'លក្ខខណ្ឌបញ្ចុះតម្លៃ',nutrition:'ចំណាំអាហារូបត្ថម្ភ (មិនតម្រូវ)'}
+    en:{code:'Order code',base:'Base amount',discount:'Discount',addons:'Add-ons',delivery:'Delivery fee',total:'Total',method:'Delivery / pickup',time:'Time',start:'Start date',name:'Name',phone:'Phone',address:'Address',notes:'Nutrition notes',remarks:'Remarks',subscriber:'Subscriber',previous:'Previous subscription',payment:'Payment status',pickup:'Pickup',deliveryMethod:'Delivery',pending:'Order Summary',create:'Create order',retry:'Retry same order',loading:'Submitting…',catalog:'Loading menu…',newOrder:'Start New Order',created:'Order created. Payment is not confirmed.',error:'Unable to complete checkout.',recovery:'Your saved order is ready to retry.',rules:'Discount rules',nutrition:'Nutrition notes (optional)'},
+    kh:{code:'លេខកូដកម្ម៉ង់',base:'តម្លៃដើម',discount:'ការបញ្ចុះតម្លៃ',addons:'បន្ថែមមុខម្ហូប',delivery:'ថ្លៃដឹកជញ្ជូន',total:'សរុប',method:'ការទទួល',time:'ម៉ោង',start:'ថ្ងៃចាប់ផ្តើម',name:'ឈ្មោះ',phone:'ទូរស័ព្ទ',address:'អាសយដ្ឋាន',notes:'ចំណាំអាហារូបត្ថម្ភ',remarks:'ចំណាំ',subscriber:'ប្រភេទអតិថិជន',previous:'លេខជាវពីមុន',payment:'ស្ថានភាពការទូទាត់',pickup:'មកយក',deliveryMethod:'ដឹកជញ្ជូន',pending:'តម្លៃសរុបរបស់អ្នក',create:'បង្កើតកម្ម៉ង់',retry:'សាកល្បងកម្ម៉ង់ដដែលម្ដងទៀត',loading:'កំពុងបញ្ជូន…',catalog:'កំពុងទាញយកម៉ឺនុយ…',newOrder:'កម្ម៉ង់ថ្មី',created:'បានបង្កើតកម្ម៉ង់។ មិនទាន់បញ្ជាក់ការទូទាត់។',error:'មិនអាចបញ្ចប់កម្ម៉ង់បាន។',recovery:'កម្ម៉ង់ដែលបានរក្សាទុកអាចសាកល្បងម្ដងទៀត។',rules:'លក្ខខណ្ឌបញ្ចុះតម្លៃ',nutrition:'ចំណាំអាហារូបត្ថម្ភ (មិនតម្រូវ)'}
   };
   function receiptLines(receipt, language = 'en') {
     if (!receipt) return [];
@@ -158,7 +160,7 @@
       const match=String(value ?? '').match(/^(\d{4})-(\d{2})-(\d{2})/); if(!match) return value;
       const [,year,month,day]=match; const khMonths=['មករា','កុម្ភៈ','មីនា','មេសា','ឧសភា','មិថុនា','កក្កដា','សីហា','កញ្ញា','តុលា','វិច្ឆិកា','ធ្នូ'];
       const date=language==='kh' ? `${day} ${khMonths[Number(month)-1]} ${year}` : `${day} ${['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][Number(month)-1]} ${year}`;
-      const time=String(value).match(/T(\d{2}:\d{2})/); return time ? `${date}, ${time[1]}` : date;
+      return date;
     };
     return [[t.code,o.order_code],['Vearuny',receipt.plan.code],
       ...receipt.items.flatMap(i => [[`${i.package_code} × ${i.quantity}`,amount(i.base_amount)], ...(i.addons || []).map(a => [a.name,amount(a.total_amount)])]),
@@ -166,8 +168,8 @@
       [t.addons,amount(o.addon_total)],[t.delivery,amount(o.delivery_fee)],[t.total,amount(o.total_amount)],
       [t.name,receipt.customer.name],[t.phone,receipt.customer.phone],[t.method,o.fulfillment_method === 'pickup'?t.pickup:t.deliveryMethod],
       [t.address,o.fulfillment_method === 'pickup' ? 'Vearuny Kitchen' : [o.district,o.commune,o.address].filter(Boolean).join(', ')],
-      [t.time,friendlyDate(o.fulfillment_time)],[t.start,friendlyDate(o.start_date)],[t.subscriber,o.subscriber_type],[t.previous,o.previous_subscription_number],
-      [t.remarks,o.customer_remarks],[t.notes,o.nutrition_notes],[t.payment,o.payment_status]].filter(([,v]) => v != null && v !== '');
+      [t.time,friendlyDate(o.fulfillment_time)],[t.start,friendlyDate(o.start_date)],[t.subscriber,({new:language==='kh'?'អតិថិជនថ្មី':'New subscriber',old:language==='kh'?'អតិថិជនចាស់':'Returning subscriber',none:'—'})[o.subscriber_type] || '—'],[t.previous,o.previous_subscription_number],
+      [t.remarks,o.customer_remarks],[t.notes,o.nutrition_notes],[t.payment,o.payment_status==='unpaid'?(language==='kh'?'មិនទាន់បង់ប្រាក់':'Pending Payment'):o.payment_status]].filter(([,v]) => v != null && v !== '');
   }
   return {createClient, buildPayload, packageFor, receiptLines, labels, APIError, STORAGE_KEY, validateQuote};
 });

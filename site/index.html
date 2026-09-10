@@ -315,12 +315,12 @@
         </main>
     </div>
 
-    <div id="ticket-modal" class="fixed inset-0 z-50 flex items-center justify-center p-4 modal hidden bg-black/50 backdrop-blur-sm transition-opacity">
+    <div id="ticket-modal" role="dialog" aria-modal="true" aria-labelledby="ticket-modal-title" class="fixed inset-0 z-50 flex items-center justify-center p-4 modal hidden bg-black/50 backdrop-blur-sm transition-opacity">
         <div class="modal-content ticket-modal-content bg-white rounded-2xl p-4 sm:p-6 w-full max-w-lg mx-auto shadow-2xl animate-slide-up border border-gray-100">
             <button id="close-ticket-modal-btn" type="button" class="ticket-icon-button ticket-close-button" aria-label="Close" title="Close">
                 <svg width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>
             </button>
-            <h2 class="text-xl font-bold mb-4" data-lang-key="ticket_title">Subscription Request Ticket</h2>
+            <h2 id="ticket-modal-title" class="text-xl font-bold mb-4" data-lang-key="ticket_title">Subscription Request Ticket</h2>
             <p id="ticket-instructions" class="text-sm mb-4" style="color: var(--brand-hint);">Review your ticket below. You can send it directly to order via Telegram, copy the order information, or simply screenshot it to share.</p>
 
             <div id="ticket-card" class="mb-2" tabindex="0" aria-label="Order ticket. Swipe left for QR code and right for order details.">

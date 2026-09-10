@@ -924,3 +924,25 @@ p { /* Ensure paragraphs use body font */
     #ticket-card .boarding-main { padding: .65rem .7rem .8rem; }
     #ticket-card .ticket-header { padding-left: .5rem; padding-right: .5rem; }
 }
+
+/* Phase 5H: keyboard/touch access and unscaled payment QR with a quiet border. */
+[hidden] { display: none !important; }
+button:focus-visible, a:focus-visible, summary:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-visible { outline: 3px solid #bc6c25; outline-offset: 3px; }
+button, .payway-link, .receipt-more summary, #meal-order-form label:has(input[type="checkbox"]), #meal-order-form label:has(input[type="radio"]) { min-height: 44px; }
+#meal-order-form label:has(input[type="checkbox"]), #meal-order-form label:has(input[type="radio"]) { padding-block: 8px; }
+#ticket-modal .ticket-close-button { position: sticky; top: 0; margin-left: auto; display: flex; width: 48px; height: 48px; transform: none; }
+#ticket-modal .ticket-icon-button { min-width: 44px; min-height: 44px; }
+.payment-qr-display { overflow: visible; min-height: 0; }
+.payment-qr-display > div { width: 100%; max-width: 276px; padding: 24px; background: #fff; box-sizing: border-box; }
+.payment-qr-display canvas, .payment-qr-display img { width: 100%; max-width: 228px; height: auto; margin: 0 auto; transform: none; image-rendering: pixelated; }
+.receipt-more summary { display: flex; align-items: center; gap: .5rem; }
+.receipt-more summary::before { content: '+'; }
+.receipt-more[open] summary::before { content: '−'; }
+#ticket-card .ticket-flipper, #ticket-card.is-flipped .ticket-flipper { transform: none; transition: none; }
+#ticket-card .ticket-back { transform: none; display: none; }
+#ticket-card.is-flipped .ticket-front { display: none; }
+#ticket-card.is-flipped .ticket-back { display: flex; }
+#ticket-card { perspective: none; }
+#ticket-card .ticket-item { grid-template-columns: minmax(0, 1fr) minmax(0, 1.3fr); }
+@media (max-width: 520px) { #ticket-card .ticket-item { font-size: .875rem; } }
+@media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation-duration: .01ms !important; transition-duration: .01ms !important; scroll-behavior: auto !important; } }

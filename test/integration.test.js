@@ -68,3 +68,27 @@ test('timeout and malformed success retain retry key; storage failure prevents r
 });
 
 test('public client refuses protected or unexpected routes',async()=>{const client=createClient({fetchImpl:()=>{throw Error('must not call network')}});await assert.rejects(client.request('/api/orders/1'),/Unsupported public/);await assert.rejects(client.request('/api/payments/1/confirm',{}),/Unsupported public/);});
+
+test('catalog concurrent calls deduplicate and valid short-TTL cache is shared without caching orders',async()=>{
+ const storage=memory();let calls=0;
+ const fetchImpl=async url=>{calls++;await new Promise(r=>setTimeout(r,5));const key=url.split('/').pop();return reply({status:'OK',[key]:catalog[key]})};
+ const client=createClient({storage:memory(),catalogStorage:storage,fetchImpl});
+ const [a,b]=await Promise.all([client.catalog(),client.catalog()]);assert.equal(a,b);assert.equal(calls,3);
+ await createClient({storage:memory(),catalogStorage:storage,fetchImpl}).catalog();assert.equal(calls,3);
+ for(const saved of [{savedAt:Date.now()+60000,catalog},{savedAt:Date.now()-360000,catalog},{savedAt:Date.now(),catalog:{plans:[],packages:[]}}]){
+  storage.setItem('vearuny.catalog.v1',JSON.stringify(saved));await createClient({storage:memory(),catalogStorage:storage,fetchImpl}).catalog();
+ }
+ assert.equal(calls,12);
+});
+test('failed catalog request can be retried and unavailable optional cache does not block reads',async()=>{
+ let fail=true;const fetchImpl=async url=>{if(fail)throw Error('offline');const key=url.split('/').pop();return reply({status:'OK',[key]:catalog[key]})};
+ const client=createClient({fetchImpl,catalogStorage:{getItem(){throw Error('blocked')},setItem(){throw Error('blocked')}}});
+ await assert.rejects(client.catalog());fail=false;assert.ok((await client.catalog()).packages.length);
+});
+test('new completed order reset uses a fresh key and never silently reuses old receipt',async()=>{
+ let sequence=0;const keys=[];const client=createClient({storage:memory(),uuid:()=>`fresh-key-${++sequence}`,fetchImpl:async(url,options)=>{if(url.endsWith('customers'))return reply({status:'OK',customer:{id:123}});keys.push(options.headers['Idempotency-Key']);return reply(response())}});
+ await client.checkout({},{});client.reset();await client.checkout({},{});assert.deepEqual(keys,['fresh-key-1','fresh-key-2']);
+});
+test('new subscriber payload excludes a previous subscription left in the hidden field',()=>{
+ const payload=buildPayload(catalog,{...form,subscriber_type:'new',subscription_number:'OLD-HIDDEN'},[{code:'A',addons:[]}],'en');assert.equal(payload.order.previous_subscription_number,null);
+});
