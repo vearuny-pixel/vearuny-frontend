@@ -1,7 +1,7 @@
 """Fail closed before Hosting uploads; inspect the actual Firebase CLI ancestor.
 
 Linux /proc is required. No environment variable can authorize a preview as live.
-All live deployment commands are rejected, regardless of environment flags.
+Production requires the separate explicit release gate; preview rules remain unchanged.
 """
 import os
 from pathlib import Path
@@ -54,7 +54,15 @@ def authorize(args, environment):
         if len(args) < 2 or args != preview_arguments(args[1]):
             raise ValueError('Use python3 scripts/deploy-preview.py CHANNEL; overrides are forbidden')
         return
-    raise ValueError('Live deployment blocked. This repository workflow permits preview channels only.')
+    if args and args[0] == 'deploy':
+        import importlib.util
+        spec = importlib.util.spec_from_file_location('production', ROOT / 'scripts/deploy-production.py')
+        production = importlib.util.module_from_spec(spec)
+        sys.dont_write_bytecode = True
+        spec.loader.exec_module(production)
+        production.hook_check(args, environment)
+        return
+    raise ValueError('Live deployment blocked. Use the explicit production wrapper.')
 
 
 if __name__ == '__main__':

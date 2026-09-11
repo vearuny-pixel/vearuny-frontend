@@ -1,4 +1,8 @@
-# Firebase preview-only deployment safeguards
+# Firebase preview deployment safeguards
+
+Phase 5I-B adds a separate [explicit production gate](production-deployment.md).
+The preview restrictions below remain enforced; historical statements that all
+production commands are blocked describe the pre-5I-B workflow.
 
 Project and Hosting site: `vearuny`. Production channel: `live`.
 `firebase.json` explicitly selects site `vearuny` and publish directory `site`.
