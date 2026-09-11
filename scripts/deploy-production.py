@@ -90,8 +90,8 @@ def hook_check(args, environment):
     require(args == command()[1:], 'Only the fixed production Hosting command is allowed')
     require(environment.get('GCLOUD_PROJECT') == 'vearuny', 'Wrong project')
     local_state(environment.get('VEARUNY_PRODUCTION_EXPECTED_HEAD', ''))
-    # Recheck immediately before upload, including tests; no trusted bypass token.
-    release_tests()
+    # Tests invoke this guard; only the wrapper may run the release test suite.
+    # Recheck local and LIVE state before upload without recursing into tests.
     live_state()
 
 

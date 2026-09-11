@@ -29,7 +29,8 @@ The hook retains every preview argument restriction and asset audit. Production
 requires `VEARUNY_ALLOW_PRODUCTION_DEPLOY=YES`, the exact phrase passed internally
 as `VEARUNY_PRODUCTION_CONFIRMATION`, the expected full HEAD passed internally as
 `VEARUNY_PRODUCTION_EXPECTED_HEAD`, and the exact production command. It repeats
-local checks, release tests and LIVE checks immediately before upload. Neither
+local and LIVE checks immediately before upload. Release tests run only in the
+wrapper, never in the hook, because tests invoke the guard. Neither
 the old authorization variable nor the new flag alone permits production.
 There is no test-mode bypass in the hook; offline tests mock external operations.
 

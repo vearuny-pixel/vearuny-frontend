@@ -95,12 +95,13 @@ class ProductionTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             p.hook_check(p.command()[1:], {**ENV, 'GCLOUD_PROJECT': 'other'})
 
-    def test_authorized_hook_rechecks_all_gates(self):
-        with patch.object(p, 'local_state') as local, patch.object(p, 'release_tests') as tests, \
+    def test_authorized_hook_never_runs_release_tests(self):
+        with patch.object(p, 'local_state') as local, \
+             patch.object(p, 'release_tests', side_effect=AssertionError('Guard must never run tests')) as tests, \
              patch.object(p, 'live_state') as live:
             p.hook_check(p.command()[1:], ENV)
         local.assert_called_once_with(HEAD)
-        tests.assert_called_once()
+        tests.assert_not_called()
         live.assert_called_once()
 
     def test_authorized_dry_run_never_deploys(self):
