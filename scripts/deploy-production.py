@@ -54,10 +54,16 @@ def local_state(expected_head):
 
 def live_state():
     # CLI performs credential refresh; this command only reads channel metadata.
+    # A standalone CLI hook inherits pkg's Node-mode flags. Start a fresh CLI
+    # runtime without changing authentication, PATH, HOME, or project settings.
+    environment = os.environ.copy()
+    for name in ('PKG_EXECPATH', 'PKG_INVOKE_NODEJS'):
+        environment.pop(name, None)
     with tempfile.TemporaryDirectory(prefix='vearuny-live-read-') as directory:
         data = json.loads(subprocess.check_output(
             ['firebase', 'hosting:channel:list', '--project', 'vearuny',
-             '--config', str(ROOT / 'firebase.json'), '--json'], cwd=directory, text=True))
+             '--config', str(ROOT / 'firebase.json'), '--json'], cwd=directory,
+            text=True, env=environment))
     require(data.get('status') == 'success', 'Cannot inspect LIVE')
     channels = data['result']['channels']
     live = [c for c in channels if c['name'] == 'projects/vearuny/sites/vearuny/channels/live']

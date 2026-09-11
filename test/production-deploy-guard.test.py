@@ -1,4 +1,4 @@
-"""Offline production release tests; all network and deployment calls are mocked."""
+"""Offline release tests; CLI help may run, network and deployments are mocked."""
 import contextlib
 import importlib.util
 import io
@@ -6,6 +6,8 @@ import json
 import os
 from pathlib import Path
 import sys
+import subprocess
+import tempfile
 import unittest
 from unittest.mock import patch
 
@@ -85,6 +87,42 @@ class ProductionTests(unittest.TestCase):
 
     def test_live_matches(self):
         self.assertEqual(self.live(), (p.LIVE_VERSION, p.LIVE_HASH))
+
+    def test_nested_firebase_pkg_environment(self):
+        executable = '/usr/local/bin/firebase'
+        inherited = {**os.environ, **ENV, 'PKG_EXECPATH': executable,
+                     'PKG_INVOKE_NODEJS': '1', 'FIREBASE_TOKEN': 'offline-fixture'}
+        check_output = subprocess.check_output
+        # --help is offline. The polluted runtime treats the command as a module
+        # before Firebase can parse it; the clean runtime prints command help.
+        with tempfile.TemporaryDirectory() as directory:
+            result = subprocess.run([executable, 'hosting:channel:list', '--help'],
+                                    cwd=directory, env=inherited, capture_output=True, text=True)
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn('Cannot find module', result.stderr)
+        self.assertIn('hosting:channel:list', result.stderr)
+
+        def cli(args, **kwargs):
+            self.assertEqual(args, ['firebase', 'hosting:channel:list', '--project',
+                                   'vearuny', '--config', str(ROOT / 'firebase.json'), '--json'])
+            self.assertEqual(kwargs['env'], {k: v for k, v in inherited.items()
+                                           if k not in ('PKG_EXECPATH', 'PKG_INVOKE_NODEJS')})
+            help_text = check_output([executable, *args[1:], '--help'], timeout=30, **kwargs)
+            self.assertIn('hosting:channel:list', help_text)
+            return json.dumps({'status': 'success', 'result': {'channels': [{
+                'name': 'projects/vearuny/sites/vearuny/channels/live',
+                'release': {'version': {'name': 'versions/' + p.LIVE_VERSION}}}]}})
+
+        with patch.dict(os.environ, inherited, clear=True), \
+             patch.object(p.subprocess, 'check_output', side_effect=cli), \
+             patch.object(p.urllib.request, 'urlopen') as request, \
+             patch.object(p.hashlib, 'sha256') as sha:
+            response = request.return_value.__enter__.return_value
+            response.status, response.url = 200, 'https://vearuny.web.app/'
+            response.read.return_value = b'fixture'
+            sha.return_value.hexdigest.return_value = p.LIVE_HASH
+            self.assertEqual(p.live_state(), (p.LIVE_VERSION, p.LIVE_HASH))
+            self.assertEqual(dict(os.environ), inherited)
 
     def test_exact_hosting_only_command(self):
         for args in (['deploy'], p.command()[1:] + ['--force'],
