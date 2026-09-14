@@ -1,0 +1,29 @@
+services:
+
+  order-frontend:
+    image: nginx:alpine
+    container_name: vearuny-order-frontend
+    restart: always
+
+    volumes:
+      - ./site:/usr/share/nginx/html:ro
+      - ./nginx.conf:/etc/nginx/conf.d/default.conf:ro
+
+    labels:
+      - "traefik.enable=true"
+
+      - "traefik.http.routers.order-frontend.rule=Host(`order.vearuny.com`)"
+      - "traefik.http.routers.order-frontend.entrypoints=websecure"
+
+      - "traefik.http.routers.order-frontend.tls.certresolver=letsencrypt"
+
+      - "traefik.http.services.order-frontend.loadbalancer.server.port=80"
+
+    networks:
+      - proxy
+
+
+networks:
+  proxy:
+    external: true
+    name: proxy
