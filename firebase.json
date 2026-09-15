@@ -23,6 +23,24 @@
             "value": "noindex, nofollow"
           }
         ]
+      },
+      {
+        "source": "/privacy",
+        "headers": [
+          {
+            "key": "X-Robots-Tag",
+            "value": "index, follow"
+          }
+        ]
+      },
+      {
+        "source": "/privacy/**",
+        "headers": [
+          {
+            "key": "X-Robots-Tag",
+            "value": "index, follow"
+          }
+        ]
       }
     ],
     "predeploy": [
