@@ -13,9 +13,18 @@ import tempfile
 import urllib.request
 
 ROOT = Path(__file__).resolve().parents[1]
-CHECKPOINT = '4d9a5baebdc484eb5b34d5a1e8f21abc559a5310'
-LIVE_VERSION = '9f7f9106ddaeadcf'
-LIVE_HASH = 'c08ad72d765027bb308af8fc9158ee7460feda693a8e56c812f526c33716466e'
+# Reviewed release checkpoint and verified LIVE baseline.
+# Superseded values, retained for rollback and audit:
+#   CHECKPOINT   4d9a5baebdc484eb5b34d5a1e8f21abc559a5310
+#   LIVE_VERSION 9f7f9106ddaeadcf
+#   LIVE_HASH    c08ad72d765027bb308af8fc9158ee7460feda693a8e56c812f526c33716466e
+# The previous LIVE pins were stale: they did not describe the release that
+# was actually serving. Re-baselined to the live release confirmed by the
+# site owner on 2026-09-15 (released 2026-09-11T12:01:58Z), whose content is
+# byte-identical to the reviewed local/checkpoint site.
+CHECKPOINT = 'c5c96725c4325456ddb85da814131f7298a58096'
+LIVE_VERSION = 'b58dfe1e7e08873b'
+LIVE_HASH = 'bd27c381b3ef0811c1dc44436edbf3c7a4cd04fb0695ba8014ee175a0873cf54'
 PHRASE = 'DEPLOY VEARUNY PRODUCTION'
 
 
