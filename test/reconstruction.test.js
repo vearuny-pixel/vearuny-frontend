@@ -37,13 +37,14 @@ test('Friday promotion supersedes subscriber discounts and excludes add-ons',()=
   assert.equal(model().getSubscriptionDiscount(100,'old','').amount,0);
   assert.equal(model([],['A'],'2026-09-11T05:00:00Z').getSubscriptionDiscount(100,'new','').amount,10);
 });
-test('English and Khmer translations and pickup slots recovered intact',()=>{
+test('English and Khmer delivery translations remain aligned without pickup options',()=>{
   const context={window:{}};
   for(const lang of ['en','kh'])vm.runInNewContext(read('site/lang-'+lang+'.js'),context);
-  assert.equal(context.window.DATA.en.pickup_times.length,4);
-  assert.equal(context.window.DATA.kh.pickup_times.length,4);
+  assert.equal(context.window.translations.en.method_delivery,'Delivery');
+  assert.equal(context.window.translations.kh.method_delivery,'ដឹកជញ្ជូន');
+  assert.equal(context.window.translations.en.method_pickup,undefined);
+  assert.equal(context.window.translations.kh.method_pickup,undefined);
   assert.equal(Object.keys(context.window.translations.en).length,Object.keys(context.window.translations.kh).length);
-  for(const lang of ['en','kh'])assert.equal(read('site/lang-'+lang+'.js'),read('recovered/lang-'+lang+'.js'));
 });
 test('maintained HTML script/style/image dependencies are local and present',()=>{
   const html=read('site/index.html');

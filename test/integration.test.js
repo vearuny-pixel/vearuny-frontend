@@ -3,8 +3,8 @@ const assert=require('node:assert/strict');
 const fs=require('node:fs');
 const {createClient,buildPayload,receiptLines,APIError,STORAGE_KEY}=require('../site/js/api.js');
 const catalog=Object.assign({},...['plans','packages','addons'].map(k=>JSON.parse(fs.readFileSync(`evidence/integration-${k}.json`))));
-const form={plan_type:'weekly',quantity:'1',method:'pickup',customer_name:'DISPOSABLE TEST',phone:'TEST-only',start_date:'2026-09-15',pickup_time:'10:00 AM',time_slot:'8:00 AM - 10:00 AM',subscriber_type:'none',remark:'TEST DO NOT FULFILL',nutrition_notes:'Test nutrition notes'};
-const response=(rule='none',discount='0.00')=>({status:'OK',order:{order_code:'VRN-TEST-123',base_amount:'123.45',discount_amount:discount,discount_rule:rule,discount_percentage:rule==='friday'?10:rule==='new_subscriber'?8:rule==='returning_subscriber'?5:0,addon_total:'9.87',delivery_fee:'0.00',total_amount:'117.23',currency:'USD',fulfillment_method:'pickup',payment_status:'unpaid',nutrition_notes:'server nutrition'},items:[{package_code:'A',quantity:1,base_amount:'123.45',addons:[{name:'x2 Egg',total_amount:'9.87'}]}],customer:{id:123,name:'SERVER NAME',phone:'TEST'},plan:{code:'WEEKLY'}});
+const form={plan_type:'weekly',quantity:'1',method:'delivery',district:'District',commune:'Commune',address:'Test address',customer_name:'DISPOSABLE TEST',phone:'TEST-only',start_date:'2026-09-15',time_slot:'8:00 AM - 10:00 AM',subscriber_type:'none',remark:'TEST DO NOT FULFILL',nutrition_notes:'Test nutrition notes'};
+const response=(rule='none',discount='0.00')=>({status:'OK',order:{order_code:'VRN-TEST-123',base_amount:'123.45',discount_amount:discount,discount_rule:rule,discount_percentage:rule==='friday'?10:rule==='new_subscriber'?8:rule==='returning_subscriber'?5:0,addon_total:'9.87',delivery_fee:'0.00',total_amount:'117.23',currency:'USD',fulfillment_method:'delivery',payment_status:'unpaid',nutrition_notes:'server nutrition'},items:[{package_code:'A',quantity:1,base_amount:'123.45',addons:[{name:'x2 Egg',total_amount:'9.87'}]}],customer:{id:123,name:'SERVER NAME',phone:'TEST'},plan:{code:'WEEKLY'}});
 const reply=(data,status=200,replayed=false)=>({ok:status<400,status,json:async()=>data,headers:{get:()=>String(replayed)}});
 const memory=()=>{const data=new Map();return {getItem:k=>data.get(k)||null,setItem:(k,v)=>data.set(k,v),removeItem:k=>data.delete(k)}};
 test('loads three catalogs and refuses missing confirmed add-ons',async()=>{
@@ -22,12 +22,14 @@ for(const plan of ['weekly','monthly'])for(const code of 'ABCDEF')test(`${plan} 
  const result=buildPayload(catalog,{...form,plan_type:plan,quantity:'2'},[{code,addons:[1,2,3,4]},{code,addons:[1,2,3,4]}],'kh');
  const item=result.order.items[0];assert.equal(result.order.items.length,1);assert.equal(item.quantity,2);assert.equal(item.package_id,catalog.packages.find(p=>p.plan_code===plan.toUpperCase()&&p.package_code===code).id);assert.equal(item.addons.length,4);assert.equal(result.customer.language,'KH');assert.ok(!JSON.stringify(result).match(/price|discount|amount|billable/));
 });
-test('mixed sets retain per-item add-ons and metadata; delivery requires all locations; pickup omits them',()=>{
+test('mixed sets retain metadata; orders and quotes always use delivery and require every address field',()=>{
  const sets=[{code:'A',addons:[1]},{code:'F',addons:[4]}];
- const {order}=buildPayload(catalog,{...form,quantity:2,method:'delivery',district:'D',commune:'C',address:'A',subscriber_type:'old',subscription_number:'PREVIOUS'},sets,'en');
+ const deliveryForm={...form,quantity:2,method:'pickup',district:'D',commune:'C',address:'A',subscriber_type:'old',subscription_number:'PREVIOUS'};
+ const {order}=buildPayload(catalog,deliveryForm,sets,'en');
  assert.equal(order.items.length,2);assert.equal(order.items[1].menu_focus,'muscle');assert.equal(order.items[1].juice_option,'large');assert.deepEqual(order.items[1].addons,[{id:4}]);assert.equal(order.previous_subscription_number,'PREVIOUS');assert.equal(order.nutrition_notes,form.nutrition_notes);assert.equal(order.customer_remarks,form.remark);assert.equal(order.fulfillment_time,form.time_slot);
- for(const field of ['district','commune','address'])assert.throws(()=>buildPayload(catalog,{...form,method:'delivery',district:'D',commune:'C',address:'A',[field]:''},[sets[0]],'en'),/Delivery requires/);
- assert.equal(buildPayload(catalog,form,[sets[0]],'en').order.address,null);
+ assert.equal(order.fulfillment_method,'delivery');
+ const quote=buildPayload(catalog,{...deliveryForm,quantity:1},[sets[0]],'en',{quote:true}).order;assert.equal(quote.fulfillment_method,'delivery');
+ for(const field of ['district','commune','address'])for(const quoteMode of [false,true])assert.throws(()=>buildPayload(catalog,{...form,[field]:''},[sets[0]],'en',{quote:quoteMode}),/Delivery requires/);
  assert.throws(()=>buildPayload(catalog,{...form,quantity:101},sets,'en'),/Quantity/);
  assert.throws(()=>buildPayload(catalog,form,[{code:'A',addons:[999]}],'en'),/add-on/);
  assert.throws(()=>buildPayload(catalog,form,[{code:'Z',addons:[]}],'en'),/Unavailable package/);

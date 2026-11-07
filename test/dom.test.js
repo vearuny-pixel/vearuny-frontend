@@ -5,6 +5,10 @@ const vm=require('node:vm');
 const {JSDOM,VirtualConsole}=require('jsdom');
 const catalog=Object.assign({},...['plans','packages','addons'].map(k=>JSON.parse(fs.readFileSync(`evidence/integration-${k}.json`))));
 const tick=()=>new Promise(resolve=>setTimeout(resolve,15));
+test('maintained checkout source has no pickup controls or customer-facing pickup text',()=>{
+ const source=['site/index.html','site/js/checkout.js','site/js/api.js','site/lang-en.js','site/lang-kh.js','site/style.css'].map(file=>fs.readFileSync(file,'utf8')).join('\n');
+ assert.doesNotMatch(source,/pickup|មកយក/i);
+});
 async function page({failCatalog=false,failOrder=false,delayOrder=false,saved}={}) {
  const errors=[],calls=[];
  const dom=new JSDOM(fs.readFileSync('site/index.html','utf8'),{url:'http://localhost:4173',runScripts:'outside-only',pretendToBeVisual:true,virtualConsole:new VirtualConsole().on('error',(...args)=>errors.push(args.join(' ')))});
@@ -37,14 +41,14 @@ async function page({failCatalog=false,failOrder=false,delayOrder=false,saved}={
  const get=id=>w.document.getElementById(id);
  const change=(id,value)=>{get(id).value=value;get(id).dispatchEvent(new w.Event('change',{bubbles:true}))};
  const submit=()=>get('meal-order-form').dispatchEvent(new w.Event('submit',{bubbles:true,cancelable:true}));
- const fill=()=>{change('customer_name','DISPOSABLE DOM');change('phone','TEST-DOM');change('subscriber_type','new');w.document.querySelector('[value="pickup"]').checked=true;w.eval('toggleMethodFields()');};
+ const fill=()=>{change('customer_name','DISPOSABLE DOM');change('phone','TEST-DOM');change('subscriber_type','new');const district=get('district');change('district',district.options[1].value);change('commune',get('commune').options[1].value);change('address','Test DOM address');};
  return {dom,w,get,change,submit,fill,calls,errors,release};
 }
 test('actual HTML initializes Khmer catalog; English switch preserves delivery geography and nutrition/menu UI',async()=>{
  const p=await page();try{
- assert.deepEqual(p.errors,[]);assert.equal(p.get('generate-ticket-btn').disabled,false);assert.equal(p.w.document.documentElement.lang,'km');
+ p.fill();await new Promise(resolve=>setTimeout(resolve,350));assert.deepEqual(p.errors,[]);assert.equal(p.get('generate-ticket-btn').disabled,false);assert.equal(p.w.document.querySelector('input[name=method]'),null);assert.equal(p.get('pickup-fields'),null);assert.doesNotMatch(p.w.document.body.textContent,/pickup|មកយក/i);assert.equal(p.w.document.documentElement.lang,'km');
  assert.equal(p.w.document.querySelectorAll('.addon-checkbox').length,4);assert.equal(p.get('discount-row').style.display,'flex');assert.match(p.get('summary-breakdown').textContent,/F/);
- assert.equal(p.get('commune').parentElement.classList.contains('hidden'),false);assert.equal(p.get('district').required,true);assert.equal(p.get('summary-total-cost').textContent,'$95.68');
+ assert.equal(p.get('district').parentElement.classList.contains('hidden'),false);assert.equal(p.get('commune').parentElement.classList.contains('hidden'),false);assert.equal(p.get('address').parentElement.classList.contains('hidden'),false);assert.equal(p.get('address').required,true);const quoteCalls=p.calls.filter(c=>c.url.endsWith('/quote'));assert.ok(quoteCalls.length>0);assert.ok(quoteCalls.every(c=>JSON.parse(c.options.body).fulfillment_method==='delivery'));assert.equal(p.get('district').required,true);assert.equal(p.get('commune').required,true);assert.equal(p.get('address').required,true);assert.equal(p.get('summary-total-cost').textContent,'$95.68');
  const district=p.get('district').options[1].value;p.change('district',district);p.change('commune',p.get('commune').options[1].value);
  p.w.eval("setLanguage('en')");assert.equal(p.get('district').selectedIndex,1);assert.equal(p.get('commune').selectedIndex,1);assert.equal(p.w.document.documentElement.lang,'en');assert.match(p.get('package-buttons').textContent,/\$17.00/);
  await tick();p.w.eval('openNutritionModal()');assert.equal(p.get('nutrition-modal').classList.contains('hidden'),false);assert.ok(p.get('nutrition-content').textContent.length>100);assert.match(p.get('menu-image').src,/assets\/menus/);
@@ -57,11 +61,11 @@ test('DOM mixed sets, per-item add-ons, pending lock, double click, escaped auth
  p.w.document.querySelectorAll('.addon-checkbox')[0].click();await tick();p.w.document.querySelectorAll('.addon-checkbox')[7].click();
  p.change('nutrition_notes','NO REAL FOOD');await new Promise(r=>setTimeout(r,350));p.submit();p.submit();await tick();assert.equal(p.get('generate-ticket-btn').disabled,true);assert.match(p.get('generate-ticket-btn').textContent,/Submitting/);assert.equal(p.get('customer_name').disabled,true);
  p.release();await tick();await tick();const orderCalls=p.calls.filter(c=>c.url.endsWith('/orders'));assert.equal(orderCalls.length,1);
- const order=JSON.parse(orderCalls[0].options.body);assert.equal(order.items.length,2);assert.deepEqual(order.items.map(i=>i.addons),[[{id:1}],[{id:4}]]);assert.equal(order.fulfillment_method,'pickup');assert.equal(order.district,null);
+ const order=JSON.parse(orderCalls[0].options.body);assert.equal(order.items.length,2);assert.deepEqual(order.items.map(i=>i.addons),[[{id:1}],[{id:4}]]);assert.equal(order.fulfillment_method,'delivery');assert.ok(order.district);assert.ok(order.commune);assert.equal(order.address,'Test DOM address');
  assert.equal(p.get('ticket-modal').classList.contains('hidden'),false);assert.match(p.get('ticket-card').textContent,/95.68 USD/);assert.match(p.get('ticket-card').textContent,/VRN-DOM-777/);assert.equal(p.get('ticket-card').querySelector('[onerror]'),null);
  assert.equal(p.w.document.querySelectorAll('#qrcode-usd').length,1);assert.equal(p.get('qrcode-usd').dataset.qr,'https://link.payway.com.kh/Ji386167m');assert.match(p.get('order-qr-code').dataset.qr,/VRN-DOM-777/);
  p.w.eval("setLanguage('kh')");assert.match(p.get('ticket-card').textContent,/សរុប/);assert.match(p.get('ticket-card').textContent,/95.68 USD/);assert.equal(p.get('generate-ticket-btn').disabled,true);
- p.get('new-order-btn').click();await new Promise(resolve=>setTimeout(resolve,350));assert.equal(p.get('generate-ticket-btn').disabled,false);assert.equal(p.get('customer_name').disabled,false);
+ p.get('new-order-btn').click();p.fill();await new Promise(resolve=>setTimeout(resolve,350));assert.equal(p.get('generate-ticket-btn').disabled,false);assert.equal(p.get('customer_name').disabled,false);
  assert.deepEqual(p.errors,[]);
  }finally{p.dom.window.close()}
 });
@@ -90,7 +94,7 @@ test('Phase 5H: language switch after quote makes no new quote/catalog requests;
  }finally{p.dom.window.close()}
 });
 test('Phase 5H: stale quote during debounce cannot overwrite changed selections; failure remains visible',async()=>{
- const p=await page();try{
+ const p=await page();try{p.fill();
  const original=p.w.fetch;let release;const gate=new Promise(r=>release=r);
  p.w.fetch=async(url,options)=>{if(url.endsWith('/quote'))await gate;return original(url,options)};
  // Client captured fetch at construction; swap through its public quote method.
