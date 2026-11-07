@@ -94,6 +94,7 @@ def release_tests():
              '-c', 'node scripts/syntax.js && node --test test/*.test.js'])
     run([sys.executable, '-B', 'test/firebase-deploy-guard.test.py'])
     run([sys.executable, '-B', 'test/production-deploy-guard.test.py'])
+    run([sys.executable, '-B', 'test/nginx-release.test.py'])
 
 
 def hook_check(args, environment):
