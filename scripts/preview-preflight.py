@@ -8,8 +8,8 @@ import subprocess
 import sys
 
 ROOT = Path(__file__).resolve().parents[1]
-# Reviewed release checkpoint. Previous: 4d9a5baebdc484eb5b34d5a1e8f21abc559a5310
-CHECKPOINT = 'c5c96725c4325456ddb85da814131f7298a58096'
+# Reviewed delivery-only release checkpoint from freshly fetched origin/main.
+CHECKPOINT = '94d08dfed85af29a53b54ee0a49ce4a7ea364184'
 parser = argparse.ArgumentParser(description=__doc__)
 parser.add_argument('--write', action='store_true')
 options = parser.parse_args()
