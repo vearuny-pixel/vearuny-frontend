@@ -42,30 +42,11 @@ body {
 #package-buttons button,
 #plan_type-buttons button,
 #time_slot-buttons button,
-#pickup_time-buttons button,
 #subscriber_type-buttons button,
 #quantity-buttons button,
 #menu_focus-buttons button,
 #juice_option-buttons button {
     color: var(--brand-text);
-}
-
-/* Clear active state for Delivery and Pickup. */
-.method-choice {
-    color: var(--brand-text);
-    background-color: var(--brand-secondary-bg);
-    border-color: #d1d5db;
-    transition: background-color .2s, border-color .2s, box-shadow .2s, transform .15s;
-}
-.method-choice.selected {
-    color: var(--brand-text);
-    background-color: var(--brand-bg);
-    border-color: var(--brand-primary);
-    box-shadow: 0 0 0 2px var(--brand-primary);
-    font-weight: 700;
-}
-.method-choice.selected::before {
-    content: none;
 }
 
 /* Modern glass-style nutrition modal */

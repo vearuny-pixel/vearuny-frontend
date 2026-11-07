@@ -125,12 +125,11 @@
       const match = grouped.find(i => i.package_id === item.package_id && JSON.stringify(i.addons) === JSON.stringify(item.addons));
       if (match) match.quantity++; else grouped.push(item);
     }
-    const delivery = form.method === 'delivery';
-    if (!quote && delivery && ['district','commune','address'].some(k => !form[k]?.trim())) throw new APIError('Delivery requires district, commune and address',400);
+    if (['district','commune','address'].some(k => !form[k]?.trim())) throw new APIError('Delivery requires district, commune and address',400);
     const customer = {name:(form.customer_name || '').trim(), phone:(form.phone || '').trim(), branch_id:plan.branch_id, language:language === 'kh' ? 'KH' : 'EN', source:'web', nutrition_notes:form.nutrition_notes || null};
-    const order = {meal_plan_id:plan.id, items:grouped, fulfillment_method:form.method,
-      district:delivery ? form.district : null, commune:delivery ? form.commune : null, address:delivery ? form.address : null,
-      fulfillment_time:delivery ? form.time_slot : form.pickup_time, start_date:form.start_date,
+    const order = {meal_plan_id:plan.id, items:grouped, fulfillment_method:'delivery',
+      district:form.district, commune:form.commune, address:form.address,
+      fulfillment_time:form.time_slot, start_date:form.start_date,
       menu_focus:items[0].menu_focus, juice_option:items[0].juice_option,
       subscriber_type:form.subscriber_type || 'none', previous_subscription_number:form.subscriber_type==='old' ? form.subscription_number || null : null,
       customer_remarks:form.remark || null, nutrition_notes:form.nutrition_notes || null, source:'web'};
@@ -147,8 +146,8 @@
     if (!q || !Array.isArray(q.items) || ['base_amount','discount_amount','addon_total','delivery_fee','total_amount'].some(k => !/^\d+(\.\d{1,2})?$/.test(String(q[k])))) throw new APIError('Incomplete price response.');
   }
   const labels = {
-    en:{code:'Order code',base:'Base amount',discount:'Discount',addons:'Add-ons',delivery:'Delivery fee',total:'Total',method:'Delivery / pickup',time:'Time',start:'Start date',name:'Name',phone:'Phone',address:'Address',notes:'Nutrition notes',remarks:'Remarks',subscriber:'Subscriber',previous:'Previous subscription',payment:'Payment status',pickup:'Pickup',deliveryMethod:'Delivery',pending:'Order Summary',create:'Create order',retry:'Retry same order',loading:'Submitting…',catalog:'Loading menu…',newOrder:'Start New Order',created:'Order created. Payment is not confirmed.',error:'Unable to complete checkout.',recovery:'Your saved order is ready to retry.',rules:'Discount rules',nutrition:'Nutrition notes (optional)'},
-    kh:{code:'លេខកូដកម្ម៉ង់',base:'តម្លៃដើម',discount:'ការបញ្ចុះតម្លៃ',addons:'បន្ថែមមុខម្ហូប',delivery:'ថ្លៃដឹកជញ្ជូន',total:'សរុប',method:'ការទទួល',time:'ម៉ោង',start:'ថ្ងៃចាប់ផ្តើម',name:'ឈ្មោះ',phone:'ទូរស័ព្ទ',address:'អាសយដ្ឋាន',notes:'ចំណាំអាហារូបត្ថម្ភ',remarks:'ចំណាំ',subscriber:'ប្រភេទអតិថិជន',previous:'លេខជាវពីមុន',payment:'ស្ថានភាពការទូទាត់',pickup:'មកយក',deliveryMethod:'ដឹកជញ្ជូន',pending:'តម្លៃសរុបរបស់អ្នក',create:'បង្កើតកម្ម៉ង់',retry:'សាកល្បងកម្ម៉ង់ដដែលម្ដងទៀត',loading:'កំពុងបញ្ជូន…',catalog:'កំពុងទាញយកម៉ឺនុយ…',newOrder:'កម្ម៉ង់ថ្មី',created:'បានបង្កើតកម្ម៉ង់។ មិនទាន់បញ្ជាក់ការទូទាត់។',error:'មិនអាចបញ្ចប់កម្ម៉ង់បាន។',recovery:'កម្ម៉ង់ដែលបានរក្សាទុកអាចសាកល្បងម្ដងទៀត។',rules:'លក្ខខណ្ឌបញ្ចុះតម្លៃ',nutrition:'ចំណាំអាហារូបត្ថម្ភ (មិនតម្រូវ)'}
+    en:{code:'Order code',base:'Base amount',discount:'Discount',addons:'Add-ons',delivery:'Delivery fee',total:'Total',method:'Fulfillment',time:'Time',start:'Start date',name:'Name',phone:'Phone',address:'Address',notes:'Nutrition notes',remarks:'Remarks',subscriber:'Subscriber',previous:'Previous subscription',payment:'Payment status',deliveryMethod:'Delivery',pending:'Order Summary',create:'Create order',retry:'Retry same order',loading:'Submitting…',catalog:'Loading menu…',newOrder:'Start New Order',created:'Order created. Payment is not confirmed.',error:'Unable to complete checkout.',recovery:'Your saved order is ready to retry.',rules:'Discount rules',nutrition:'Nutrition notes (optional)'},
+    kh:{code:'លេខកូដកម្ម៉ង់',base:'តម្លៃដើម',discount:'ការបញ្ចុះតម្លៃ',addons:'បន្ថែមមុខម្ហូប',delivery:'ថ្លៃដឹកជញ្ជូន',total:'សរុប',method:'ការដឹកជញ្ជូន',time:'ម៉ោង',start:'ថ្ងៃចាប់ផ្តើម',name:'ឈ្មោះ',phone:'ទូរស័ព្ទ',address:'អាសយដ្ឋាន',notes:'ចំណាំអាហារូបត្ថម្ភ',remarks:'ចំណាំ',subscriber:'ប្រភេទអតិថិជន',previous:'លេខជាវពីមុន',payment:'ស្ថានភាពការទូទាត់',deliveryMethod:'ដឹកជញ្ជូន',pending:'តម្លៃសរុបរបស់អ្នក',create:'បង្កើតកម្ម៉ង់',retry:'សាកល្បងកម្ម៉ង់ដដែលម្ដងទៀត',loading:'កំពុងបញ្ជូន…',catalog:'កំពុងទាញយកម៉ឺនុយ…',newOrder:'កម្ម៉ង់ថ្មី',created:'បានបង្កើតកម្ម៉ង់។ មិនទាន់បញ្ជាក់ការទូទាត់។',error:'មិនអាចបញ្ចប់កម្ម៉ង់បាន។',recovery:'កម្ម៉ង់ដែលបានរក្សាទុកអាចសាកល្បងម្ដងទៀត។',rules:'លក្ខខណ្ឌបញ្ចុះតម្លៃ',nutrition:'ចំណាំអាហារូបត្ថម្ភ (មិនតម្រូវ)'}
   };
   function receiptLines(receipt, language = 'en') {
     if (!receipt) return [];
@@ -166,8 +165,8 @@
       ...receipt.items.flatMap(i => [[`${i.package_code} × ${i.quantity}`,amount(i.base_amount)], ...(i.addons || []).map(a => [a.name,amount(a.total_amount)])]),
       [t.base,amount(o.base_amount)],[t.discount,amount(o.discount_amount)],[t.rules,`${rules[o.discount_rule] || o.discount_rule} (${o.discount_percentage}%)`],
       [t.addons,amount(o.addon_total)],[t.delivery,amount(o.delivery_fee)],[t.total,amount(o.total_amount)],
-      [t.name,receipt.customer.name],[t.phone,receipt.customer.phone],[t.method,o.fulfillment_method === 'pickup'?t.pickup:t.deliveryMethod],
-      [t.address,o.fulfillment_method === 'pickup' ? 'Vearuny Kitchen' : [o.district,o.commune,o.address].filter(Boolean).join(', ')],
+      [t.name,receipt.customer.name],[t.phone,receipt.customer.phone],[t.method,t.deliveryMethod],
+      [t.address,[o.district,o.commune,o.address].filter(Boolean).join(', ')],
       [t.time,friendlyDate(o.fulfillment_time)],[t.start,friendlyDate(o.start_date)],[t.subscriber,({new:language==='kh'?'អតិថិជនថ្មី':'New subscriber',old:language==='kh'?'អតិថិជនចាស់':'Returning subscriber',none:'—'})[o.subscriber_type] || '—'],[t.previous,o.previous_subscription_number],
       [t.remarks,o.customer_remarks],[t.notes,o.nutrition_notes],[t.payment,o.payment_status==='unpaid'?(language==='kh'?'មិនទាន់បង់ប្រាក់':'Pending Payment'):o.payment_status]].filter(([,v]) => v != null && v !== '');
   }

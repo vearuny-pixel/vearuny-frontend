@@ -1,5 +1,4 @@
 // --- CONSTANTS ---
-        const PICKUP_LOCATION_LINK = "https://maps.app.goo.gl/XePtBJKT8hGEPaiw6";
         const ADMIN_USERNAME = "vearuny"; // Admin username for t.me link
         const PAYWAY_USD_LINK = "https://link.payway.com.kh/Ji386167m";
         const PAYWAY_KHR_LINK = "https://link.payway.com.kh/ra386168n";
@@ -62,8 +61,8 @@
         ];
 
         const FRIENDLY_TEXT = {
-            en:{weekly:'Weekly — 5 Meals',monthly:'Monthly — 20 Meals',newCustomer:'New Customer',returning:'Returning Customer',tomorrow:'Tomorrow',dayAfter:'Day After Tomorrow',monday:'Monday',districtOptional:'District *',districtPlaceholder:'Select district',remarkTitle:'7. Remark (Optional)',addonTitle:'8. Additional Add-ons (Optional)',subscriberTitle:'9. Subscriber Type',addonNote:'Chicken and seafood are charged only on the menu days containing them.',ticketInstructions:'Review your ticket below. You can send it directly to order via Telegram, copy the order information, or simply screenshot it to share.',copy:'Copy Summary',telegram:'Send to Telegram',flipQr:'Show QR Side',flipDetails:'Show Details Side',downloadQr:'Download Ticket with QR',qrTitle:'SCAN ORDER QR',qrHelp:'Screenshot or send this QR to Vearuny Kitchen.',perDay:''},
-            kh:{weekly:'ប្រចាំសប្ដាហ៍ — ៥ ពេល',monthly:'ប្រចាំខែ — ២០ ពេល',newCustomer:'អតិថិជនថ្មី',returning:'អតិថិជនចាស់',tomorrow:'ថ្ងៃស្អែក',dayAfter:'ខានស្អែក',monday:'ថ្ងៃច័ន្ទ',districtOptional:'ខណ្ឌ',districtPlaceholder:'ជ្រើសរើសខណ្ឌ',remarkTitle:'៧. ចំណាំ',addonTitle:'៨. បន្ថែមមុខម្ហូប',subscriberTitle:'៩. ប្រភេទអតិថិជន',addonNote:'សាច់មាន់ និងគ្រឿងសមុទ្រ គិតថ្លៃតែតាមចំនួនថ្ងៃដែលមានក្នុងម៉ឺនុយប៉ុណ្ណោះ។',ticketInstructions:'សូមពិនិត្យសំបុត្រកម្ម៉ង់ខាងក្រោម។ អ្នកអាចផ្ញើការកម្ម៉ង់តាមតេលេក្រាម ចម្លងព័ត៌មានកម្ម៉ង់ ឬថតអេក្រង់ដើម្បីចែករំលែក។',copy:'ចម្លងសេចក្ដីសង្ខេប',telegram:'ផ្ញើទៅតេលេក្រាម',flipQr:'បង្ហាញផ្នែក QR',flipDetails:'បង្ហាញព័ត៌មានកម្ម៉ង់',downloadQr:'ទាញយកសំបុត្រជាមួយ QR',qrTitle:'ស្កេន QR ការកម្ម៉ង់',qrHelp:'ថតអេក្រង់ ឬផ្ញើ QR នេះទៅផ្ទះបាយវារុណី។',perDay:''}
+            en:{weekly:'Weekly — 5 Meals',monthly:'Monthly — 20 Meals',newCustomer:'New Customer',returning:'Returning Customer',tomorrow:'Tomorrow',dayAfter:'Day After Tomorrow',monday:'Monday',districtRequired:'District *',districtPlaceholder:'Select district',remarkTitle:'7. Remark (Optional)',addonTitle:'8. Additional Add-ons (Optional)',subscriberTitle:'9. Subscriber Type',addonNote:'Chicken and seafood are charged only on the menu days containing them.',ticketInstructions:'Review your ticket below. You can send it directly to order via Telegram, copy the order information, or simply screenshot it to share.',copy:'Copy Summary',telegram:'Send to Telegram',flipQr:'Show QR Side',flipDetails:'Show Details Side',downloadQr:'Download Ticket with QR',qrTitle:'SCAN ORDER QR',qrHelp:'Screenshot or send this QR to Vearuny Kitchen.',perDay:''},
+            kh:{weekly:'ប្រចាំសប្ដាហ៍ — ៥ ពេល',monthly:'ប្រចាំខែ — ២០ ពេល',newCustomer:'អតិថិជនថ្មី',returning:'អតិថិជនចាស់',tomorrow:'ថ្ងៃស្អែក',dayAfter:'ខានស្អែក',monday:'ថ្ងៃច័ន្ទ',districtRequired:'ខណ្ឌ *',districtPlaceholder:'ជ្រើសរើសខណ្ឌ',remarkTitle:'៧. ចំណាំ',addonTitle:'៨. បន្ថែមមុខម្ហូប',subscriberTitle:'៩. ប្រភេទអតិថិជន',addonNote:'សាច់មាន់ និងគ្រឿងសមុទ្រ គិតថ្លៃតែតាមចំនួនថ្ងៃដែលមានក្នុងម៉ឺនុយប៉ុណ្ណោះ។',ticketInstructions:'សូមពិនិត្យសំបុត្រកម្ម៉ង់ខាងក្រោម។ អ្នកអាចផ្ញើការកម្ម៉ង់តាមតេលេក្រាម ចម្លងព័ត៌មានកម្ម៉ង់ ឬថតអេក្រង់ដើម្បីចែករំលែក។',copy:'ចម្លងសេចក្ដីសង្ខេប',telegram:'ផ្ញើទៅតេលេក្រាម',flipQr:'បង្ហាញផ្នែក QR',flipDetails:'បង្ហាញព័ត៌មានកម្ម៉ង់',downloadQr:'ទាញយកសំបុត្រជាមួយ QR',qrTitle:'ស្កេន QR ការកម្ម៉ង់',qrHelp:'ថតអេក្រង់ ឬផ្ញើ QR នេះទៅផ្ទះបាយវារុណី។',perDay:''}
         };
 
         const getOrderedPackages = quantity => {
@@ -251,12 +250,9 @@
                 start.insertAdjacentElement('beforebegin',box);
             }
 
-            document.querySelectorAll('input[name="method"]').forEach(input=>{const label=input.closest('label'); input.classList.add('sr-only'); label.classList.add('method-choice','p-3','rounded-xl','border-2','flex-1','justify-center');});
-            updateMethodButtonStyles();
 
             const time = document.getElementById('time_slot');
             if(time){time.innerHTML='<option value="8:00 AM - 10:00 AM">8:00 AM–10:00 AM</option><option value="10:00 AM - 12:00 PM">10:00 AM–12:00 PM</option><option value="3:00 PM - 5:00 PM">3:00–5:00 PM</option><option value="4:00 PM - 6:00 PM">4:00–6:00 PM</option>'; convertSelectToButtons('time_slot',null,'grid-cols-1 sm:grid-cols-4');}
-            convertSelectToButtons('pickup_time',null,'grid-cols-1 sm:grid-cols-3');
 
             const remarkBox=document.getElementById('remark-quick-options');
             REMARK_OPTIONS.forEach(item=>{const b=document.createElement('button');b.type='button';b.dataset.value=item.value;b.textContent=item[currentLanguage];b.className='p-2 rounded-lg border text-xs font-semibold';b.onclick=()=>{const input=document.getElementById('remark');const parts=input.value.split(',').map(x=>x.trim()).filter(Boolean);const pos=parts.findIndex(part=>part===item.en||part===item.kh);if(pos>=0){parts.splice(pos,1);b.style.boxShadow='none';}else{parts.push(item[currentLanguage]);b.style.boxShadow='0 0 0 2px var(--brand-primary)';}input.value=parts.join(', ');input.dispatchEvent(new Event('input',{bubbles:true}));};remarkBox.appendChild(b);});
@@ -268,7 +264,7 @@
             document.getElementById('subscriber-title').textContent=ft.subscriberTitle;
             document.getElementById('send-ticket-btn').textContent=ft.telegram;
             document.getElementById('ticket-instructions').textContent=ft.ticketInstructions;
-            document.getElementById('district-optional-label').textContent=ft.districtOptional;
+            document.getElementById('district-label').textContent=ft.districtRequired;
             document.getElementById('summary-addon-label').textContent=currentLanguage==='kh'?'បន្ថែមមុខម្ហូប':'Add-ons';
             document.getElementById('ticket-modal-title').textContent=currentLanguage==='kh'?'បង្កាន់ដៃកម្ម៉ង់':'Order Ticket';
             const quoteRetryBtn=document.getElementById('quote-retry-btn');
@@ -311,15 +307,13 @@
             const remarkParts=remarkInput.value.split(',').map(x=>x.trim()).filter(Boolean).map(part=>{const item=REMARK_OPTIONS.find(x=>x.en===part||x.kh===part);return item?item[currentLanguage]:part;});
             remarkInput.value=remarkParts.join(', ');
             document.querySelectorAll('#remark-quick-options button').forEach((b,i)=>b.textContent=REMARK_OPTIONS[i][currentLanguage]);
-            const pickupButtons=document.getElementById('pickup_time-buttons');
-            if(pickupButtons){pickupButtons.remove();document.getElementById('pickup_time').classList.remove('hidden');convertSelectToButtons('pickup_time',null,'grid-cols-1 sm:grid-cols-3');}
             document.getElementById('addon-title').textContent=ft.addonTitle;
             document.getElementById('addon-note').textContent=ft.addonNote;
             document.getElementById('remark-title').textContent=ft.remarkTitle;
             document.getElementById('subscriber-title').textContent=ft.subscriberTitle;
             document.getElementById('send-ticket-btn').textContent=ft.telegram;
             document.getElementById('ticket-instructions').textContent=ft.ticketInstructions;
-            document.getElementById('district-optional-label').textContent=ft.districtOptional;
+            document.getElementById('district-label').textContent=ft.districtRequired;
             document.getElementById('summary-addon-label').textContent=currentLanguage==='kh'?'បន្ថែមមុខម្ហូប':'Add-ons';
             updateTicketControlLanguage();
             refreshPackageButtonPrices();
@@ -465,7 +459,6 @@
             const deliveryTime=document.getElementById('time_slot').value;
             const districtIndex=DATA[previousLanguage].districts.indexOf(document.getElementById('district').value);
             const communeIndex=(DATA[previousLanguage].communes[document.getElementById('district').value]||[]).indexOf(document.getElementById('commune').value);
-            const pickupIndex=DATA[previousLanguage].pickup_times.indexOf(document.getElementById('pickup_time').value);
             currentLanguage = lang;
             document.getElementById('customer_name').setAttribute('aria-label',CheckoutAPI.labels[lang].name);
             document.getElementById('phone').setAttribute('aria-label',CheckoutAPI.labels[lang].phone);
@@ -519,8 +512,6 @@
 
             populateSelect('time_slot', ['8:00 AM - 10:00 AM', '10:00 AM - 12:00 PM', '3:00 PM - 5:00 PM', '4:00 PM - 6:00 PM']);
             if(deliveryTime)document.getElementById('time_slot').value=deliveryTime;
-            populateSelect('pickup_time', DATA[lang].pickup_times);
-            if(pickupIndex>=0)document.getElementById('pickup_time').value=DATA[lang].pickup_times[pickupIndex];
 
             showMenuImage();
             updatePlanNotesVisibility();
@@ -584,22 +575,9 @@
         };
 
         const toggleMethodFields = () => {
-            const methodRadio = document.querySelector('input[name="method"]:checked');
-            if (!methodRadio) return;
-            const method = methodRadio.value;
             const deliveryFields = document.getElementById('delivery-fields');
-            const pickupFields = document.getElementById('pickup-fields');
-            if (deliveryFields) deliveryFields.style.display = (method === 'delivery') ? 'block' : 'none';
-            if (pickupFields) pickupFields.style.display = (method === 'pickup') ? 'block' : 'none';
-            updateMethodButtonStyles();
+            if (deliveryFields) deliveryFields.style.display = 'block';
             updatePriceSummary();
-        };
-
-        const updateMethodButtonStyles = () => {
-            document.querySelectorAll('input[name="method"]').forEach(input => {
-                const label=input.closest('label');
-                if(label) label.classList.toggle('selected',input.checked);
-            });
         };
 
         const populateSelect = (elementId, options, addPlaceholder = false, placeholderKey = null) => {
@@ -762,8 +740,7 @@
             document.getElementById('summary-delivery-cost').textContent='$0.00';
             document.getElementById('summary-discount').textContent='$0.00';
             document.getElementById('discount-row').style.display='flex';
-            const delivery = document.querySelector('input[name="method"]:checked')?.value==='delivery';
-            for (const id of ['district','commune','address']) document.getElementById(id).required=delivery;
+            for (const id of ['district','commune','address']) document.getElementById(id).required=true;
             document.querySelector('label[for="commune"]').textContent=currentLanguage==='kh'?'សង្កាត់ *':'Commune *';
             document.getElementById('nutrition-notes-label').textContent=apiText().nutrition;
             renderAddons();
@@ -819,8 +796,7 @@
             updateCommuneOptions(document.getElementById('district').value);
             const communeIndex=(DATA[originalLang].communes[order.district]||[]).indexOf(order.commune);
             value('commune',communeIndex>=0?DATA[currentLanguage].communes[document.getElementById('district').value]?.[communeIndex]:order.commune);
-            document.querySelectorAll('input[name="method"]').forEach(input=>{input.checked=input.value===order.fulfillment_method;});
-            value(order.fulfillment_method==='pickup'?'pickup_time':'time_slot',order.fulfillment_time);
+            value('time_slot',order.fulfillment_time);
             syncFocusJuiceFromPackage();handleSubscriberTypeChange();toggleMethodFields();refreshFriendlyLanguage();
         };
         const startNewOrder = () => {
@@ -856,7 +832,7 @@
             const form = document.getElementById(formId);
             if (!form) return false;
             const t = translations[currentLanguage];
-            const requiredFields = {'meal-order-form': ['package', 'plan_type', 'quantity', 'start_date', 'customer_name', 'phone']};
+            const requiredFields = {'meal-order-form': ['package', 'plan_type', 'quantity', 'start_date', 'district', 'commune', 'address', 'customer_name', 'phone']};
 
             if (!requiredFields[formId]) return true;
 
@@ -877,18 +853,6 @@
                     const fieldNameText = label ? label.textContent.replace(/[0-9.]/g, '').replace('(Optional)', '').replace('(មិនតម្រូវ)', '').trim() : fieldName;
                     showAlert(t.alert_fill_field.replace('{fieldName}', fieldNameText || fieldName));
                     field?.focus();
-                    return false;
-                }
-            }
-
-            const methodRadio = form.querySelector('input[name="method"]:checked');
-            if (methodRadio && methodRadio.value === 'delivery') {
-                const addressField = form.querySelector('[name="address"]');
-                if (!addressField || !addressField.value || !addressField.value.trim()) {
-                    let label = form.querySelector('label[for="address"]');
-                    const fieldNameText = label ? label.textContent.replace('(Optional)', '').replace('(មិនតម្រូវ)', '').trim() : 'Address';
-                    showAlert(t.alert_fill_field.replace('{fieldName}', fieldNameText));
-                    addressField?.focus();
                     return false;
                 }
             }
@@ -985,8 +949,8 @@
             const essentials=row(kh?'គម្រោង':'Plan',saved.plan.code==='MONTHLY'?(kh?'ប្រចាំខែ':'Monthly'):(kh?'ប្រចាំសប្ដាហ៍':'Weekly'))+
                 saved.items.map(i=>row(`${kh?'ឈុត':'Package'} ${i.package_code} × ${i.quantity}`,PACKAGE_NAMES[currentLanguage][i.package_code] || i.package_name || '')).join('')+
                 row(kh?'ចំនួនសរុប':'Total quantity',saved.items.reduce((n,i)=>n+Number(i.quantity),0))+
-                row(t.start,date(o.start_date))+row(t.method,o.fulfillment_method==='pickup'?t.pickup:t.deliveryMethod)+row(t.time,o.fulfillment_time)+row(t.name,saved.customer?.name);
-            const details=[[t.address,o.fulfillment_method==='pickup'?(kh?'ផ្ទះបាយវារុណី':'Vearuny Kitchen'):[o.district,o.commune,o.address].filter(Boolean).join(', ')],
+                row(t.start,date(o.start_date))+row(t.method,t.deliveryMethod)+row(t.time,o.fulfillment_time)+row(t.name,saved.customer?.name);
+            const details=[[t.address,[o.district,o.commune,o.address].filter(Boolean).join(', ')],
                 [t.phone,saved.customer?.phone],[t.subscriber,subscriber],[t.previous,o.previous_subscription_number],[t.remarks,o.customer_remarks],[t.notes,o.nutrition_notes]];
             const detailHTML=details.filter(([,v])=>v).map(([k,v])=>row(k,v)).join('')+saved.items.map(i=>(i.addons||[]).map(a=>row(`${i.package_code} × ${i.quantity} · ${addonName(a)}`,money(a.total_amount))).join('')).join('');
             return `<div class="ticket-flipper"><section class="ticket-face ticket-front"><div class="boarding-pass-layout"><div class="boarding-main receipt-polished">
@@ -1412,7 +1376,7 @@
                 document.getElementById('receipt-open-btn').onclick=()=>{if(receipt())displayReceipt();};
                 if(checkoutClient) {loadCatalog();if(receipt())displayReceipt();}
 
-                ['package', 'quantity', 'start_date', 'time_slot', 'pickup_time', 'customer_name', 'phone', 'remark', 'address', 'commune', 'subscription_number'].forEach(id => {
+                ['package', 'quantity', 'start_date', 'time_slot', 'customer_name', 'phone', 'remark', 'address', 'commune', 'subscription_number'].forEach(id => {
                     const element = document.getElementById(id);
                     if (element) {
                         if (['SELECT', 'INPUT'].includes(element.tagName) && element.type !== 'text' && element.type !== 'tel' && element.type !== 'number' && element.type !== 'textarea') {
@@ -1441,12 +1405,7 @@
                     });
                 }
 
-                document.querySelectorAll('input[name="method"]').forEach(radio => {
-                     radio.addEventListener('change', () => {
-                         updateMethodButtonStyles();
-                         updatePriceSummary();
-                     });
-                });
+
 
                 const packageSelect = document.getElementById('package');
                 if (packageSelect) packageSelect.addEventListener('change', showMenuImage);
@@ -1476,9 +1435,6 @@
                         showAlert(translations[currentLanguage].alert_geo_unsupported);
                     }
                 });
-
-                 const pickupLink = document.getElementById('pickup-location-link');
-                if(pickupLink) pickupLink.href = PICKUP_LOCATION_LINK;
 
                 const viewPolicyBtn = document.getElementById('view-policy-btn');
                 if(viewPolicyBtn) viewPolicyBtn.addEventListener('click', openPolicyModal);
