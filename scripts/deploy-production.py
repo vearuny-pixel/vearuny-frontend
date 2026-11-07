@@ -13,17 +13,13 @@ import tempfile
 import urllib.request
 
 ROOT = Path(__file__).resolve().parents[1]
-# Reviewed release checkpoint and verified LIVE baseline.
-# Superseded values, retained for rollback and audit:
-#   CHECKPOINT   4d9a5baebdc484eb5b34d5a1e8f21abc559a5310
-#   LIVE_VERSION 9f7f9106ddaeadcf
-#   LIVE_HASH    c08ad72d765027bb308af8fc9158ee7460feda693a8e56c812f526c33716466e
-# The previous LIVE pins were stale: they did not describe the release that
-# was actually serving. Re-baselined to the live release confirmed by the
-# site owner on 2026-09-15 (released 2026-09-11T12:01:58Z), whose content is
-# byte-identical to the reviewed local/checkpoint site.
-CHECKPOINT = 'c5c96725c4325456ddb85da814131f7298a58096'
-LIVE_VERSION = 'b58dfe1e7e08873b'
+# Reviewed delivery-only release checkpoint and Firebase LIVE baseline observed 2026-11-07.
+# Previous gate checkpoint was c5c96725c4325456ddb85da814131f7298a58096 and
+# previous version pin was b58dfe1e7e08873b. The observed LIVE HTML hash is
+# unchanged, but the version pin advanced; retain the strict version check to
+# fail closed against concurrent or unexpected releases.
+CHECKPOINT = '94d08dfed85af29a53b54ee0a49ce4a7ea364184'
+LIVE_VERSION = '8626bf2d58a9a6a0'
 LIVE_HASH = 'bd27c381b3ef0811c1dc44436edbf3c7a4cd04fb0695ba8014ee175a0873cf54'
 PHRASE = 'DEPLOY VEARUNY PRODUCTION'
 
@@ -98,6 +94,7 @@ def release_tests():
              '-c', 'node scripts/syntax.js && node --test test/*.test.js'])
     run([sys.executable, '-B', 'test/firebase-deploy-guard.test.py'])
     run([sys.executable, '-B', 'test/production-deploy-guard.test.py'])
+    run([sys.executable, '-B', 'test/nginx-release.test.py'])
 
 
 def hook_check(args, environment):
