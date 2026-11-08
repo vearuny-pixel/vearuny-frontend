@@ -3,16 +3,17 @@ if (!window.DATA) window.DATA = {};
 if (!window.translations) window.translations = {};
 
 window.DATA.en = {
-    districts: ["Boeng Keng Kang", "Chamkarmon", "Chbar Ampov", "Chroy Changvar", "Daun Penh", "Meanchey", "Por Senchey", "7 Makara", "Russey Keo", "Sen Sok", "Toul Kork"].sort(),
+    districts: ["Boeng Keng Kang", "Chamkarmon", "Chbar Ampov", "Chroy Changvar", "Daun Penh", "Meanchey", "Por Senchey", "7 Makara", "Russey Keo", "Sen Sok", "Toul Kork", "Ta Khmao"].sort(),
     time_slots: ["8:00 AM - 10:00 AM", "10:00 AM - 12:00 PM", "2:00 PM - 4:00 PM", "4:00 PM - 6:00 PM"],
     communes: {
         "Boeng Keng Kang": ["BKK 1", "BKK 2", "BKK 3", "Olympic", "Tumnob Tuek", "Tuol Svay Prey 1", "Tuol Svay Prey 2"].sort(),
         "Chamkarmon": ["Tonle Basak", "Tuol Tumpung 1", "Tuol Tumpung 2", "Boeng Trabaek", "Phsar Daeum Thkov"].sort(),
-        "Chbar Ampov": ["Chbar Ampov 1", "Chbar Ampov 2", "Kbal Kaoh", "Preaek Aeng", "Preaek Pra", "Preaek Thmei", "Veal Sbov", "Nirouth"].sort(),
-        "Chroy Changvar": ["Chroy Changvar", "Preaek Lieb", "Preaek Ta Sek", "Kaoh Dach", "Bak Khaeng"].sort(),
+        "Chbar Ampov": ["Chbar Ampov 1", "Chbar Ampov 2", "Preaek Aeng", "Preaek Thmei", "Veal Sbov", "Nirouth"].sort(),
+        "Chroy Changvar": ["Chroy Changvar", "Preaek Lieb"].sort(),
         "Daun Penh": ["Phsar Thmei 1", "Phsar Thmei 2", "Phsar Thmei 3", "Boeng Reang", "Phsar Kandal 1", "Phsar Kandal 2", "Chakto Mukh", "Chey Chumneah", "Srah Chak", "Wat Phnom", "Boeng Prolit"].sort(),
         "Meanchey": ["Boeng Tumpun 1", "Boeng Tumpun 2", "Chak Angre Kraom", "Chak Angre Leu", "Stung Meanchey 1", "Stung Meanchey 2", "Stung Meanchey 3"].sort(),
-        "Por Senchey": ["Chaom Chau 1", "Chaom Chau 2", "Chaom Chau 3", "Kakab 1", "Kakab 2", "Kantaok", "Plea", "Phleung Chheh Roteh", "Samraong Kraom", "Trapeang Krasang", "Snaor", "Boeng Thum", "Kamboul", "Ovlork"].sort(),
+        "Por Senchey": ["Chaom Chau 1", "Chaom Chau 2", "Chaom Chau 3", "Kakab 1", "Kakab 2", "Kantaok", "Plea", "Phleung Chheh Roteh", "Samraong Kraom", "Trapeang Krasang", "Snaor", "Boeng Thum", "Ovlork"].sort(),
+        "Ta Khmao": ["Ta Kdol", "Prek Ruessey", "Doeum Mien", "Ta Khmao", "Prek Ho", "Kampong Samnanh", "Svay Rolum", "Kaoh Anlong Chen", "Settak Bou", "Roka Khpuos"].sort(),
         "7 Makara": ["Boeung Prolit", "Monorom", "Mittapheap", "Veal Vong", "Orussey 1", "Orussey 2", "Orussey 3", "Orussey 4"].sort(),
         "Russey Keo": ["Chrang Chamreh 1", "Chrang Chamreh 2", "Kiloumaetr Lekh Prammuoy", "Russey Keo", "Svay Pak", "Tuol Sangkae 1", "Tuol Sangkae 2"].sort(),
         "Sen Sok": ["Khmuonh", "Krang Thnong", "Ou Baek K'am", "Phnom Penh Thmei", "Tuek Thla"].sort(),
